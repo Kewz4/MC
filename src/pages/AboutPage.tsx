@@ -1,56 +1,48 @@
 import { useLayoutEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { ArrowDown, ClipboardCheck, Layers3, PackageCheck, ScanLine, Sparkles } from 'lucide-react';
+import { ArrowDown } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { LabLabel, RegistrationMarks, TextLink } from '../components/LabUI';
+import { TextLink } from '../components/LabUI';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const stations = [
+const processSteps = [
   {
     index: '01',
-    code: 'BRIEF / DIRECTION',
-    title: 'Start with the reason.',
-    copy: 'Before a garment is selected or a screen is burned, the team gets clear on the audience, use case, artwork, quantity, timing, and what the piece needs to communicate.',
-    image: '/assets/images/bts-workshop.jpg',
-    alt: 'Team members reviewing a project inside an apparel workshop',
-    tags: ['Use case', 'Art direction', 'Garment path'],
+    title: 'Start with the idea.',
+    copy: 'We get clear on the audience, use case, artwork, quantity, timing, and what the piece needs to communicate.',
+    image: '/assets/images/about-planning-v2.webp',
+    alt: 'Two collaborators arranging garments, fabric swatches, thread, and color references',
   },
   {
     index: '02',
-    code: 'PRINT / STITCH',
-    title: 'Choose the right mark.',
-    copy: 'Screen print, DTG, DTF, embroidery, and sewing each create a different result. Method, placement, scale, color, and fabric are calibrated as a single production decision.',
-    image: '/assets/images/bts-table.jpg',
-    alt: 'Apparel, patches, and color references arranged on a production table',
-    tags: ['Print method', 'Thread + ink', 'Placement'],
+    title: 'Choose the right method.',
+    copy: 'Garment, print or stitch method, placement, scale, and color are considered together so the result feels intentional.',
+    image: '/assets/images/services-quality-v2.webp',
+    alt: 'Screen-print and embroidery samples being compared on black fabric',
   },
   {
     index: '03',
-    code: 'FINISH / DETAIL',
-    title: 'Make it feel complete.',
-    copy: 'Neck labels, hangtags, sewing, fold and bag, and barcode stickers turn printed apparel into a considered product ready for retail, a team, or a launch.',
-    image: '/assets/images/bts-hands.jpg',
-    alt: 'Hands inspecting and folding a printed garment',
-    tags: ['Labels', 'Hangtags', 'Retail finish'],
+    title: 'Finish every detail.',
+    copy: 'Labels, hangtags, sewing, folding, bagging, and barcodes turn decorated apparel into a complete product.',
+    image: '/assets/images/about-finishing-v2.webp',
+    alt: 'A finished black sweatshirt being folded into tissue for packing',
   },
   {
     index: '04',
-    code: 'QC / DELIVERY',
-    title: 'Finish the handoff.',
-    copy: 'The build is reviewed against the approved proof, finished goods are prepared for their next stop, and ongoing programs can continue through a consistent fulfillment path.',
-    image: '/assets/images/bts-folding.jpg',
-    alt: 'A finished printed garment being inspected at a workbench',
-    tags: ['Quality control', 'Delivery', 'Fulfillment'],
+    title: 'Prepare for delivery.',
+    copy: 'The order is checked against the approved proof and prepared for delivery, launch, or an ongoing program.',
+    image: '/assets/images/quote-still-life-v2.webp',
+    alt: 'Folded apparel, a cap, tags, and packaging prepared for delivery',
   },
 ];
 
 const teamFunctions = [
-  { icon: ClipboardCheck, code: 'STATION_01', title: 'Client partnerships', copy: 'Translates goals, timing, and program needs into a clear working brief.' },
-  { icon: Layers3, code: 'STATION_02', title: 'Art + prepress', copy: 'Prepares artwork, placement, color references, and the proof that production follows.' },
-  { icon: Sparkles, code: 'STATION_03', title: 'Production', copy: 'Brings the approved build to life through the selected print, stitch, and sewing methods.' },
-  { icon: PackageCheck, code: 'STATION_04', title: 'Finishing + fulfillment', copy: 'Handles the details between the press and the final delivery or ongoing program.' },
+  ['Client partnerships', 'Turns goals, timing, and program needs into a clear working brief.'],
+  ['Art and prepress', 'Prepares artwork, placement, color references, and the proof used for production.'],
+  ['Production', 'Brings the approved project to life through print, stitch, and sewing.'],
+  ['Finishing and fulfillment', 'Handles the details between the press and final delivery.'],
 ];
 
 export default function AboutPage() {
@@ -66,39 +58,38 @@ export default function AboutPage() {
     const context = gsap.context(() => {
       media.add('(prefers-reduced-motion: no-preference)', () => {
         const heroImage = heroRef.current?.querySelector('.about-hero-image');
-        const heroRule = heroRef.current?.querySelector('.about-hero-rule');
         const heroWords = heroRef.current?.querySelectorAll('.about-hero-word');
 
         if (heroImage) {
-          gsap.fromTo(heroImage, { scale: 1.12 }, { scale: 1, duration: 1.6, ease: 'power3.out' });
+          gsap.fromTo(heroImage, { scale: 1.1 }, { scale: 1, duration: 1.6, ease: 'power3.out' });
           gsap.to(heroImage, {
-            yPercent: 10,
+            yPercent: 8,
             ease: 'none',
             scrollTrigger: { trigger: heroRef.current, start: 'top top', end: 'bottom top', scrub: 1 },
           });
         }
-        if (heroRule) gsap.fromTo(heroRule, { scaleX: 0 }, { scaleX: 1, duration: 1.1, delay: 0.3, ease: 'power3.out' });
+
         if (heroWords?.length) {
-          gsap.from(heroWords, { yPercent: 115, stagger: 0.08, duration: 1, delay: 0.18, ease: 'power4.out' });
+          gsap.from(heroWords, { yPercent: 115, stagger: 0.09, duration: 1, delay: 0.16, ease: 'power4.out' });
         }
       });
 
       media.add('(min-width: 1024px) and (prefers-reduced-motion: no-preference)', () => {
         const section = processRef.current;
         if (!section) return;
+
         const images = gsap.utils.toArray<HTMLElement>('.process-image', section);
         const cards = gsap.utils.toArray<HTMLElement>('.process-card', section);
-        const progress = section.querySelector<HTMLElement>('.process-progress');
 
-        gsap.set(images, { autoAlpha: 0, scale: 1.035 });
+        gsap.set(images, { autoAlpha: 0, scale: 1.025 });
         gsap.set(images[0], { autoAlpha: 1, scale: 1 });
 
-        const showImage = (index: number) => {
+        const showImage = (activeIndex: number) => {
           images.forEach((image, imageIndex) => {
             gsap.to(image, {
-              autoAlpha: imageIndex === index ? 1 : 0,
-              scale: imageIndex === index ? 1 : 1.035,
-              duration: 0.6,
+              autoAlpha: imageIndex === activeIndex ? 1 : 0,
+              scale: imageIndex === activeIndex ? 1 : 1.025,
+              duration: 0.65,
               overwrite: true,
               ease: 'power2.out',
             });
@@ -114,20 +105,7 @@ export default function AboutPage() {
             onEnterBack: () => showImage(index),
           });
         });
-
-        if (progress) {
-          gsap.fromTo(
-            progress,
-            { scaleY: 0 },
-            {
-              scaleY: 1,
-              ease: 'none',
-              scrollTrigger: { trigger: section, start: 'top 20%', end: 'bottom 80%', scrub: true },
-            },
-          );
-        }
       });
-
     }, scope);
 
     return () => {
@@ -137,103 +115,64 @@ export default function AboutPage() {
   }, []);
 
   return (
-    <main ref={pageRef} className="overflow-hidden bg-white">
-      <section ref={heroRef} className="relative flex min-h-[94vh] items-end overflow-hidden bg-lab-black px-6 pb-10 pt-32 text-white sm:px-8 lg:px-10 lg:pb-12">
-        <img src="/assets/images/lab-showroom.jpg" alt="Merchcraft apparel lab with team members working around a showroom table" className="about-hero-image absolute inset-0 h-[112%] w-full object-cover opacity-80" />
-        <div className="absolute inset-0 bg-gradient-to-b from-lab-black/40 via-lab-black/10 to-lab-black/95" />
-        <div className="lab-dots halftone-mask absolute -right-10 top-10 h-[60%] w-[45%] opacity-20 [--dot-color:white]" />
-        <RegistrationMarks light />
+    <main ref={pageRef} className="bg-white">
+      <section ref={heroRef} className="relative flex min-h-[94vh] items-end overflow-hidden bg-lab-black px-6 pb-12 pt-32 text-white sm:px-8 lg:px-10 lg:pb-16">
+        <img src="/assets/images/about-printmaker-v2.webp" alt="A printmaker pulling ink across a screen in the Merchcraft workshop" className="about-hero-image absolute inset-0 h-[110%] w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-lab-black/20 via-lab-black/10 to-lab-black/90" />
 
-        <div className="relative z-10 mx-auto w-full max-w-[1500px]">
-          <div className="mb-7 flex items-center justify-between">
-            <LabLabel dark>About the lab</LabLabel>
-            <span className="hidden font-display text-[10px] font-bold uppercase tracking-[0.26em] text-white/45 sm:block">Record 002 / Orange County</span>
-          </div>
-          <h1 className="font-impact text-[clamp(4.7rem,13vw,13rem)] uppercase leading-[0.78] tracking-[-0.025em]">
+        <div className="relative z-10 mx-auto w-full max-w-7xl">
+          <p className="mb-7 font-sans text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">About Merchcraft</p>
+          <h1 className="font-display text-[clamp(3.1rem,11vw,11rem)] font-bold uppercase leading-[0.82] tracking-tighter">
             <span className="block overflow-hidden"><span className="about-hero-word block">The people</span></span>
-            <span className="block overflow-hidden"><span className="about-hero-word block text-lab-gold">behind the pull.</span></span>
+            <span className="block overflow-hidden"><span className="about-hero-word block">behind <span className="font-serif italic normal-case text-lab-gold">the work.</span></span></span>
           </h1>
-          <div className="about-hero-rule mt-9 h-px origin-left bg-white/45" />
-          <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <p className="max-w-2xl text-base font-medium leading-relaxed text-white/72 sm:text-lg">Not a corporate timeline. A closer look at the decisions, hands, and handoffs that turn an identity into a garment.</p>
-            <a href="#lab-record" className="inline-flex min-h-11 items-center gap-3 self-start font-display text-[10px] font-bold uppercase tracking-[0.25em] text-white/55 transition-colors hover:text-white sm:self-auto">
-              Open the record <ArrowDown className="h-4 w-4" aria-hidden="true" />
+          <div className="mt-9 flex flex-col gap-6 border-t border-white/35 pt-7 sm:flex-row sm:items-end sm:justify-between">
+            <p className="max-w-2xl text-base font-medium leading-relaxed text-white/72 sm:text-lg">We help brands turn ideas into apparel through thoughtful production, close collaboration, and careful finishing.</p>
+            <a href="#how-we-work" className="inline-flex items-center gap-3 self-start font-sans text-xs font-bold uppercase tracking-widest text-white transition-opacity hover:opacity-60 sm:self-auto">
+              See how we work <ArrowDown className="h-4 w-4" aria-hidden="true" />
             </a>
           </div>
         </div>
       </section>
 
-      <section id="lab-record" className="relative bg-white px-6 py-20 sm:px-8 lg:px-10 lg:py-28">
-        <div className="mx-auto grid max-w-[1500px] gap-14 lg:grid-cols-[0.55fr_1.45fr]">
+      <section className="bg-white px-6 py-20 sm:px-8 lg:px-10 lg:py-28">
+        <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.55fr_1.45fr]">
           <div>
-            <span className="font-impact text-8xl text-lab-gold">001</span>
-            <div className="mt-6"><LabLabel>Lab record</LabLabel></div>
+            <p className="font-sans text-sm font-bold uppercase tracking-[0.14em] text-lab-red">Who we are</p>
           </div>
           <div>
-            <h2 className="max-w-5xl font-display text-[clamp(2.8rem,5.7vw,6.4rem)] font-semibold uppercase leading-[0.92] tracking-[-0.045em]">
-              A custom apparel partner built around <span className="text-lab-red">production excellence</span> and the relationships that make it reliable.
-            </h2>
+            <h2 className="max-w-5xl font-display text-[clamp(3rem,6vw,6.5rem)] font-bold uppercase leading-[0.9] tracking-tighter">A hands-on apparel partner from concept through delivery.</h2>
             <div className="mt-12 grid gap-9 border-t border-lab-line pt-9 md:grid-cols-2">
-              <p className="text-base font-medium leading-relaxed text-lab-black/65">
-                Merchcraft brings custom apparel and finishing to life for Orange County clients and brand communities across Southern California—from one-off drops to ongoing fulfillment.
-              </p>
-              <p className="text-base font-medium leading-relaxed text-lab-black/65">
-                Founders, marketing teams, agencies, and creative directors come to the lab for help connecting initial design, production method, retail details, and final delivery.
-              </p>
-            </div>
-            <div className="mt-12 flex flex-wrap gap-2">
-              {['Founders', 'Marketing teams', 'Agencies', 'Creative directors'].map((item) => (
-                <span key={item} className="rounded-full border border-lab-line px-5 py-3 font-display text-[10px] font-bold uppercase tracking-[0.18em]">{item}</span>
-              ))}
+              <p className="text-base font-medium leading-relaxed text-lab-black/62">Merchcraft works with founders, marketing teams, agencies, and creative directors on everything from focused drops to ongoing programs.</p>
+              <p className="text-base font-medium leading-relaxed text-lab-black/62">We bring the garment, decoration, finishing, and fulfillment pieces together so every detail feels considered.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section ref={processRef} className="relative border-y border-lab-line bg-lab-paper px-6 py-20 sm:px-8 lg:px-10 lg:py-28">
-        <div className="mx-auto max-w-[1500px]">
-          <div className="mb-12 grid gap-8 lg:grid-cols-[0.55fr_1.45fr] lg:items-end">
-            <LabLabel>Production dossier</LabLabel>
-            <h2 className="font-impact text-[clamp(4.4rem,10vw,10.5rem)] uppercase leading-[0.8] tracking-[-0.025em]">One garment.<br /><span className="text-lab-red">Many hands.</span></h2>
+      <section id="how-we-work" ref={processRef} className="border-y border-lab-line bg-lab-white px-6 py-20 sm:px-8 lg:px-10 lg:py-28">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-14 grid gap-8 lg:grid-cols-2 lg:items-end">
+            <h2 className="font-display text-[clamp(3.5rem,7vw,7.5rem)] font-bold uppercase leading-[0.86] tracking-tighter">One garment.<br /><span className="font-serif italic normal-case text-lab-red">Many hands.</span></h2>
+            <p className="max-w-xl text-base font-medium leading-relaxed text-lab-black/60 lg:justify-self-end">Every project moves through a series of human decisions—from the first conversation to the final fold.</p>
           </div>
 
           <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20">
-            <div className="process-stage sticky top-[88px] hidden h-[calc(100vh-120px)] min-h-[590px] overflow-hidden bg-lab-black lg:block">
-              <RegistrationMarks light />
-              {stations.map((station) => (
-                <img key={station.index} src={station.image} alt={station.alt} className="process-image absolute inset-0 h-full w-full object-cover opacity-0" />
+            <div className="sticky top-[88px] hidden h-[calc(100vh-120px)] min-h-[590px] overflow-hidden bg-lab-black lg:block">
+              {processSteps.map((step) => (
+                <img key={step.index} src={step.image} alt={step.alt} className="process-image absolute inset-0 h-full w-full object-cover opacity-0" />
               ))}
-              <div className="absolute inset-0 bg-gradient-to-t from-lab-black via-transparent to-lab-black/15" />
-              <div className="absolute bottom-0 left-0 right-0 z-10 flex items-end justify-between p-9 text-white">
-                <div>
-                  <span className="font-display text-[9px] font-bold uppercase tracking-[0.28em] text-lab-gold">Visual feed</span>
-                  <p className="mt-2 font-display text-xs font-bold uppercase tracking-[0.2em] text-white/65">Production path / live record</p>
-                </div>
-                <ScanLine className="h-6 w-6 text-white/45" aria-hidden="true" />
-              </div>
-              <div className="absolute right-5 top-5 h-[calc(100%-40px)] w-px bg-white/15">
-                <div className="process-progress h-full w-px origin-top bg-lab-red" />
-              </div>
             </div>
 
             <div>
-              {stations.map((station, index) => (
-                <article key={station.index} className="process-card flex min-h-[82vh] flex-col justify-center border-t border-lab-line py-16 first:border-t-0 lg:min-h-[88vh] lg:py-24">
-                  <div className="mb-7 overflow-hidden bg-lab-black lg:hidden">
-                    <img src={station.image} alt={station.alt} loading="lazy" className="aspect-[4/3] h-full w-full object-cover" />
+              {processSteps.map((step) => (
+                <article key={step.index} className="process-card flex min-h-[72vh] flex-col justify-center border-t border-lab-line py-16 first:border-t-0 lg:min-h-[82vh] lg:py-24">
+                  <div className="mb-8 overflow-hidden bg-lab-black lg:hidden">
+                    <img src={step.image} alt={step.alt} loading="lazy" className="aspect-[4/3] h-full w-full object-cover" />
                   </div>
-                  <div className="flex items-start justify-between gap-5">
-                    <span className="font-impact text-[clamp(4rem,7vw,7rem)] leading-none text-lab-gold">{station.index}</span>
-                    <span className="mt-2 font-display text-[9px] font-bold uppercase tracking-[0.25em] text-lab-red">{station.code}</span>
-                  </div>
-                  <h3 className="mt-8 max-w-xl font-display text-[clamp(2.5rem,4vw,4.8rem)] font-semibold uppercase leading-[0.95] tracking-[-0.04em]">{station.title}</h3>
-                  <p className="mt-7 max-w-xl text-base font-medium leading-relaxed text-lab-black/62">{station.copy}</p>
-                  <div className="mt-9 grid grid-cols-3 gap-2">
-                    {station.tags.map((tag) => (
-                      <span key={tag} className="border-t border-lab-line pt-4 font-display text-[9px] font-bold uppercase tracking-[0.17em] text-lab-black/45">{tag}</span>
-                    ))}
-                  </div>
-                  <span className="mt-10 font-display text-[9px] font-bold uppercase tracking-[0.26em] text-lab-black/25">Sequence {index + 1} / {stations.length}</span>
+                  <span className="font-impact text-[clamp(4rem,7vw,7rem)] leading-none text-lab-gold">{step.index}</span>
+                  <h3 className="mt-8 max-w-xl font-display text-[clamp(2.6rem,4.5vw,5rem)] font-bold uppercase leading-[0.92] tracking-tighter">{step.title}</h3>
+                  <p className="mt-7 max-w-xl text-base font-medium leading-relaxed text-lab-black/62">{step.copy}</p>
                 </article>
               ))}
             </div>
@@ -242,64 +181,59 @@ export default function AboutPage() {
       </section>
 
       <section className="bg-white px-6 py-20 sm:px-8 lg:px-10 lg:py-28">
-        <div className="mx-auto max-w-[1500px]">
+        <div className="mx-auto max-w-7xl">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-end">
             <div>
-              <LabLabel>Experience, without the résumé</LabLabel>
-              <h2 className="mt-8 font-display text-[clamp(3rem,5.5vw,6.2rem)] font-semibold uppercase leading-[0.92] tracking-[-0.045em]">Built for the drop.<br />Ready for the program.</h2>
+              <p className="font-sans text-sm font-bold uppercase tracking-[0.14em] text-lab-red">Who we work with</p>
+              <h2 className="mt-7 font-display text-[clamp(3rem,5.5vw,6rem)] font-bold uppercase leading-[0.9] tracking-tighter">Built for a first drop.<br />Ready for what comes next.</h2>
             </div>
-            <p className="max-w-xl text-base font-medium leading-relaxed text-lab-black/62 lg:justify-self-end">The work changes shape—from a focused first run to a continuing fulfillment rhythm. The standard stays the same: clear direction, an approved proof, and production details that hold together.</p>
+            <p className="max-w-xl text-base font-medium leading-relaxed text-lab-black/62 lg:justify-self-end">The work can be a focused launch or a continuing program. The standard stays the same: clear direction and production details that hold together.</p>
           </div>
-          <div className="mt-14 grid border border-lab-line md:grid-cols-2 lg:grid-cols-4">
+
+          <div className="mt-14 grid border-t border-lab-line md:grid-cols-2 lg:grid-cols-4">
             {[
-              ['01', 'One-off drops', 'Launches, capsules, events, and special projects with a defined finish line.'],
-              ['02', 'Ongoing fulfillment', 'Repeat programs that benefit from continuity across production and delivery.'],
-              ['03', 'Brand-side teams', 'Support for founders and marketers balancing concept, timing, and internal needs.'],
-              ['04', 'Creative partners', 'A production counterpart for agencies and creative directors protecting the idea through execution.'],
-            ].map(([index, title, copy]) => (
-              <motion.article key={title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.45 }} className="min-h-[300px] border-b border-lab-line p-7 last:border-b-0 md:border-r md:[&:nth-child(even)]:border-r-0 lg:border-b-0 lg:[&:nth-child(even)]:border-r lg:last:border-r-0">
-                <span className="font-impact text-5xl text-lab-red">{index}</span>
-                <h3 className="mt-12 font-display text-lg font-bold uppercase tracking-[-0.02em]">{title}</h3>
-                <p className="mt-4 text-sm font-medium leading-relaxed text-lab-black/55">{copy}</p>
+              ['Founders', 'Focused launches, growing brands, and the details that make a first run feel established.'],
+              ['Marketing teams', 'Campaign apparel, events, internal programs, and repeatable brand consistency.'],
+              ['Agencies', 'A production partner that protects the creative idea through execution.'],
+              ['Creative directors', 'Thoughtful garment, method, placement, and finishing collaboration.'],
+            ].map(([title, copy], index) => (
+              <motion.article key={title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.45 }} transition={{ delay: index * 0.07 }} className="min-h-[270px] border-b border-lab-line py-9 md:border-r md:px-8 lg:border-b-0 first:md:pl-0 last:lg:border-r-0">
+                <h3 className="font-display text-2xl font-bold uppercase tracking-tight">{title}</h3>
+                <p className="mt-6 text-sm font-medium leading-relaxed text-lab-black/55">{copy}</p>
               </motion.article>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-lab-black px-6 py-20 text-white sm:px-8 lg:px-10 lg:py-28">
-        <div className="lab-grid absolute inset-0 opacity-20 [--grid-color:rgba(255,255,255,0.08)]" />
-        <div className="relative mx-auto max-w-[1500px]">
-          <LabLabel dark>The people are the process</LabLabel>
-          <div className="mt-12 grid border border-white/15 md:grid-cols-2 lg:grid-cols-4">
-            {teamFunctions.map((item) => {
-              const Icon = item.icon;
-              return (
-                <article key={item.code} className="group min-h-[330px] border-b border-white/15 p-7 transition-colors last:border-b-0 hover:bg-white hover:text-lab-black md:border-r md:[&:nth-child(even)]:border-r-0 lg:border-b-0 lg:[&:nth-child(even)]:border-r lg:last:border-r-0">
-                  <div className="flex items-center justify-between">
-                    <span className="font-display text-[9px] font-bold uppercase tracking-[0.24em] text-lab-gold group-hover:text-lab-red">{item.code}</span>
-                    <Icon className="h-5 w-5 text-white/45 group-hover:text-lab-red" aria-hidden="true" />
-                  </div>
-                  <h3 className="mt-20 font-display text-2xl font-semibold uppercase leading-tight tracking-[-0.03em]">{item.title}</h3>
-                  <p className="mt-5 text-sm font-medium leading-relaxed text-white/55 group-hover:text-lab-black/60">{item.copy}</p>
-                </article>
-              );
-            })}
+      <section className="bg-lab-black px-6 py-20 text-white sm:px-8 lg:px-10 lg:py-28">
+        <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div className="overflow-hidden">
+            <img src="/assets/images/bts-table.jpg" alt="Merchcraft team reviewing garments and production details" loading="lazy" className="aspect-[4/3] h-full w-full object-cover" />
+          </div>
+          <div className="lg:pl-8">
+            <p className="font-sans text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">The team behind the work</p>
+            <h2 className="mt-7 font-display text-[clamp(3rem,5.5vw,6rem)] font-bold uppercase leading-[0.9] tracking-tighter">Different skills.<br />One finished piece.</h2>
+            <div className="mt-10 grid gap-x-8 sm:grid-cols-2">
+              {teamFunctions.map(([title, copy]) => (
+                <div key={title} className="border-t border-white/15 py-6">
+                  <h3 className="font-display text-lg font-bold uppercase tracking-tight">{title}</h3>
+                  <p className="mt-3 text-sm font-medium leading-relaxed text-white/55">{copy}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       <section className="bg-lab-gold px-6 py-20 sm:px-8 lg:px-10 lg:py-28">
-        <div className="mx-auto grid max-w-[1500px] gap-14 lg:grid-cols-[0.7fr_1.3fr] lg:items-end">
+        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.55fr_1.45fr] lg:items-end">
+          <img src="/assets/brand/merchcraft-mark-full.svg" alt="" className="h-20 w-auto" />
           <div>
-            <img src="/assets/brand/merchcraft-mark-full.svg" alt="" className="h-20 w-auto" />
-            <p className="mt-7 font-display text-xs font-bold uppercase tracking-[0.23em] text-lab-black/55">Mission / Vision / Standard</p>
-          </div>
-          <div>
-            <h2 className="font-impact text-[clamp(4rem,9vw,9rem)] uppercase leading-[0.8] tracking-[-0.025em]">Built on craft.<br />Run on reliability.</h2>
+            <h2 className="font-display text-[clamp(3.8rem,8vw,8.5rem)] font-bold uppercase leading-[0.82] tracking-tighter">Craft matters.<br />So does reliability.</h2>
             <div className="mt-10 flex flex-col items-start justify-between gap-8 border-t border-lab-black/20 pt-8 sm:flex-row sm:items-center">
-              <p className="max-w-2xl text-base font-semibold leading-relaxed text-lab-black/70">The aim is simple: elevate the brands we serve through thoughtful apparel, production excellence, and the relationships clients can depend on.</p>
-              <TextLink to="/quote">Put your identity on a garment</TextLink>
+              <p className="max-w-2xl text-base font-semibold leading-relaxed text-lab-black/70">We care about making apparel look right, feel right, and arrive ready for what comes next.</p>
+              <TextLink to="/quote">Tell us what you’re making</TextLink>
             </div>
           </div>
         </div>

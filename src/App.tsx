@@ -1,10 +1,9 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import SiteFooter from './components/SiteFooter';
 import SiteHeader from './components/SiteHeader';
+import HomePage from './pages/HomePage';
 
-const HomePage = lazy(() => import('./pages/HomePage'));
 const ServicesPage = lazy(() => import('./pages/ServicesPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const ContactPage = lazy(() => import('./pages/ContactPage'));
@@ -16,20 +15,20 @@ const metadata: Record<string, { title: string; description: string }> = {
     description: 'Custom apparel, screen printing, embroidery, finishing, and fulfillment for brands across Southern California and beyond.',
   },
   '/services': {
-    title: 'Services | Merchcraft Apparel Lab',
-    description: 'Explore Merchcraft screen printing, embroidery, garment finishing, proofing, fulfillment, and live production capabilities.',
+    title: 'Services | Merchcraft',
+    description: 'Explore Merchcraft screen printing, embroidery, retail finishing, and fulfillment services.',
   },
   '/about': {
-    title: 'About | Merchcraft Apparel Lab',
-    description: 'Meet the apparel lab behind Merchcraft and follow the hands-on path from project brief to finished garment.',
+    title: 'About | Merchcraft',
+    description: 'Meet the people and process behind Merchcraft custom apparel production.',
   },
   '/contact': {
     title: 'Contact | Merchcraft',
-    description: 'Talk with Merchcraft about general questions, production support, partnerships, or a custom apparel project.',
+    description: 'Contact Merchcraft about production, partnerships, or a custom apparel project.',
   },
   '/quote': {
-    title: 'Start a Build | Merchcraft',
-    description: 'Share your project, method, quantity, timeline, and artwork to request a custom apparel quote from Merchcraft.',
+    title: 'Request a Quote | Merchcraft',
+    description: 'Share your project details to request a custom apparel quote from Merchcraft.',
   },
 };
 
@@ -46,40 +45,38 @@ function RouteEffects() {
   return null;
 }
 
-function PageRoutes() {
-  const location = useLocation();
-
+function InteriorLayout() {
   return (
     <>
-      <RouteEffects />
       <SiteHeader />
       <Suspense
         fallback={
-          <div className="flex min-h-screen items-center justify-center bg-lab-black text-white">
-            <span className="font-display text-[11px] font-bold uppercase tracking-[0.3em] text-lab-gold">Preparing the lab…</span>
+          <div className="flex min-h-screen items-center justify-center bg-lab-white">
+            <img src="/assets/brand/merchcraft-primary-full.svg" alt="Merchcraft" className="h-9 w-auto" />
           </div>
         }
       >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <Routes location={location}>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/services" element={<ServicesPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/quote" element={<QuotePage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </motion.div>
-        </AnimatePresence>
+        <Outlet />
       </Suspense>
       <SiteFooter />
+    </>
+  );
+}
+
+function PageRoutes() {
+  return (
+    <>
+      <RouteEffects />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route element={<InteriorLayout />}>
+          <Route path="/services" element={<ServicesPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/quote" element={<QuotePage />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </>
   );
 }

@@ -1,12 +1,28 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import {
   ArrowRight,
+  Menu,
+  X,
+  Search,
+  User,
+  Instagram,
+  Twitter,
   FlaskConical,
   Zap,
   Shirt
 } from 'lucide-react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Link } from 'react-router-dom';
+
+gsap.registerPlugin(ScrollTrigger);
+
+const NavLink = ({ children, to = '#', className = '' }: { children: React.ReactNode; to?: string; className?: string }) => (
+  <Link to={to} className={`font-sans font-bold text-[13px] uppercase tracking-[0.12em] opacity-60 hover:opacity-100 transition-opacity whitespace-nowrap ${className}`}>
+    {children}
+  </Link>
+);
 
 
 const ProjectCard = ({ src, title, category, delay = 0 }: { src: string; title: string; category: string; delay?: number }) => (
@@ -176,7 +192,7 @@ const InteractiveLab = () => {
       x: 25,
       y: 35,
       title: "Curated Archive",
-      description: "A working archive of technical builds, print methods, finishing details, and garment references.",
+      description: "A collection of our most technical builds, showcasing various printing and washing techniques from the past decade.",
       label: "Specimen_Wall"
     },
     {
@@ -200,16 +216,16 @@ const InteractiveLab = () => {
       x: 65,
       y: 45,
       title: "Inventory Racks",
-      description: "A material library used to compare weight, fiber, color, and hand feel against each project brief.",
+      description: "Our facility maintains a deep stock of premium heavyweight blanks, ready for immediate custom engineering.",
       label: "Stock_Archive"
     },
     {
       id: 5,
       x: 85,
       y: 35,
-      title: "Orange County Lab",
-      description: "A hands-on apparel studio serving founders, marketing teams, agencies, and creative directors across Southern California.",
-      label: "Lab_OC"
+      title: "Facility No. 42",
+      description: "Our headquarters in Santa Ana, CA. A purpose-built space designed for apparel engineering and brand development.",
+      label: "Lab_HQ"
     }
   ];
 
@@ -252,7 +268,7 @@ const InteractiveLab = () => {
             onClick={() => setActiveHotspot(activeHotspot === spot.id ? null : spot.id)}
             className="relative group/spot"
           >
-            <div className="w-4 h-4 bg-lab-red rounded-full animate-pulse shadow-[0_0_20px_rgba(204,17,44,0.8)]" />
+            <div className="w-4 h-4 bg-lab-red rounded-full animate-pulse shadow-[0_0_20px_rgba(163,42,41,0.8)]" />
             <div className="absolute inset-0 w-4 h-4 border border-white rounded-full animate-ping opacity-40" />
 
             {/* Label */}
@@ -311,7 +327,7 @@ const InteractiveLab = () => {
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 bg-lab-red rounded-full animate-pulse" />
-            <span className="font-mono font-bold text-[12px] text-white uppercase tracking-[0.3em]">Live_Feed: Apparel_Lab</span>
+            <span className="font-mono font-bold text-[12px] text-white uppercase tracking-[0.3em]">Live_Feed: Facility_42</span>
           </div>
           <div className="font-mono font-bold text-[11px] text-white/40 uppercase tracking-widest">Resolution: 4K_RAW // ISO: 400</div>
         </div>
@@ -332,10 +348,10 @@ const InteractiveLab = () => {
 const PantoneFan = () => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const colors = [
-    { hex: '#CC112C', name: 'Brand Red', code: '186 C' },
-    { hex: '#CB9933', name: 'Brand Gold', code: '7407 C' },
-    { hex: '#101820', name: 'Brand Black', code: 'Black 6 C' },
-    { hex: '#FFFFFF', name: 'Pure White', code: 'Neutral' },
+    { hex: '#A32A29', name: 'Merchcraft Red', code: '187 C' },
+    { hex: '#C5A059', name: 'Apparel Gold', code: '4515 C' },
+    { hex: '#141414', name: 'Carbon Black', code: 'Black 6 C' },
+    { hex: '#F5F5F5', name: 'Lab White', code: 'Cool Gray 1 C' },
     { hex: '#5A5A40', name: 'Olive Drab', code: '5743 C' },
     { hex: '#2A3B4C', name: 'Deep Navy', code: '296 C' },
     { hex: '#E27D60', name: 'Terracotta', code: '7522 C' },
@@ -607,7 +623,7 @@ const InkTankSection = () => {
           </motion.h2>
 
           <p className="font-sans font-bold text-xl text-white/60 max-w-md leading-relaxed mb-12">
-            Color is treated like a production specification, not an afterthought. We align inks, garments, and print methods so the finished piece feels intentional and stays consistent.
+            Our ink lab is where color meets chemistry. We develop custom pigments that bond with fibers at a molecular level, ensuring your brand stays vibrant for a lifetime.
           </p>
 
           <div className="space-y-8">
@@ -639,9 +655,85 @@ const InkTankSection = () => {
 
 export default function HomePage() {
   const heroRef = useRef<HTMLDivElement>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove('dark');
+    root.style.colorScheme = 'light';
+    localStorage.removeItem('darkMode');
+  }, []);
+
+  useEffect(() => {
+    const context = gsap.context(() => {
+      gsap.utils.toArray<HTMLElement>('.parallax-section').forEach((section) => {
+        gsap.to(section, {
+          scrollTrigger: { trigger: section, scrub: true },
+          y: -40,
+          ease: 'none',
+        });
+      });
+    });
+
+    return () => context.revert();
+  }, []);
 
   return (
-    <main className="min-h-screen selection:bg-lab-red selection:text-white overflow-x-hidden bg-lab-white transition-colors duration-300">
+    <div className="min-h-screen selection:bg-lab-red selection:text-white overflow-x-hidden bg-lab-white transition-colors duration-300">
+      {/* Navigation - restored from the original homepage */}
+      <nav className={`fixed top-0 left-0 w-full z-50 px-8 transition-all duration-300 flex justify-between items-center bg-white/95 backdrop-blur-md border-b border-lab-line ${isScrolled ? 'py-2.5' : 'py-5'}`}>
+        <div className="hidden lg:flex gap-6 items-center flex-1">
+          <NavLink to="/services">Services</NavLink>
+          <NavLink>Showroom</NavLink>
+          <NavLink>Culture</NavLink>
+          <NavLink>Projects</NavLink>
+          <NavLink className="tracking-[0.05em]">Live Screen Printing</NavLink>
+        </div>
+
+        <div className="flex-1 flex justify-center">
+          <Link to="/" aria-label="Merchcraft home" className={`block transition-all duration-500 cursor-pointer ${isScrolled ? 'h-6' : 'h-10'}`}>
+            <img
+              src="/assets/brand/merchcraft-primary-full.svg"
+              alt="Merchcraft Logo"
+              className="h-full w-auto"
+            />
+          </Link>
+        </div>
+
+        <div className="hidden lg:flex gap-8 items-center flex-1 justify-end">
+          <div className="flex gap-4 items-center">
+            <div className="flex items-center gap-2 cursor-pointer hover:opacity-50 transition-opacity">
+              <Search className="w-3.5 h-3.5" />
+              <span className="font-sans font-bold text-[12px] uppercase tracking-widest">Search</span>
+            </div>
+            <div className="flex items-center gap-2 cursor-pointer hover:opacity-50 transition-opacity">
+              <User className="w-3.5 h-3.5" />
+              <span className="font-sans font-bold text-[12px] uppercase tracking-widest">Account</span>
+            </div>
+            <Link to="/quote" className="bg-lab-red text-white px-5 py-2 rounded-full font-sans font-bold uppercase tracking-widest text-[12px] hover:bg-lab-black transition-all duration-300 shadow-lg">
+              Begin Your Build
+            </Link>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="lg:hidden flex gap-4 items-center"
+          aria-label="Open navigation"
+          onClick={() => setIsMenuOpen(true)}
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+      </nav>
+
+      <main>
       {/* Hero Section - Full Width with Integrated Text */}
       <section ref={heroRef} className="relative min-h-screen flex flex-col bg-white pt-24 overflow-hidden">
         {/* Main Hero Image - Full Width */}
@@ -668,7 +760,7 @@ export default function HomePage() {
               transition={{ delay: 0.5, duration: 0.8 }}
               className="mb-6"
             >
-              <span className="font-display font-semibold text-[13px] uppercase tracking-[0.5em] text-white/60">Orange County — Southern California</span>
+              <span className="font-sans font-bold text-[13px] uppercase tracking-[0.5em] text-white/60">Est. 2014 — Santa Ana</span>
             </motion.div>
 
             <motion.h1
@@ -678,7 +770,7 @@ export default function HomePage() {
               className="text-[8vw] md:text-[6vw] leading-[0.9] tracking-tighter mb-8"
             >
               <span className="font-display font-bold uppercase text-white block">Your Merch,</span>
-              <span className="font-display text-white block opacity-90">Our Craft.</span>
+              <span className="font-serif italic text-white block opacity-90">Our Craft.</span>
             </motion.h1>
 
             <motion.p
@@ -711,7 +803,7 @@ export default function HomePage() {
           >
             {[...Array(10)].map((_, i) => (
               <div key={i} className="flex items-center gap-8">
-                <span className="font-sans text-[12px] font-bold uppercase tracking-[0.2em]">Screen print · Embroidery · Finishing · Fulfillment</span>
+                <span className="font-sans text-[12px] font-bold uppercase tracking-[0.2em]">Sign up for 10% off your first order</span>
                 <div className="flex gap-1">
                   <div className="w-1 h-1 bg-black rotate-45" />
                   <div className="w-1 h-1 bg-black rotate-45" />
@@ -737,7 +829,7 @@ export default function HomePage() {
             <HexagonStep
               step="Step 1."
               title="Submit Your Brand Logos & Assets"
-              text="Send your logos, references, quantities, and goals so the team can review the brief."
+              text="Upload your vector files and design guidelines to our secure portal for initial review."
               color="var(--color-lab-red)"
             />
             <div className="hidden lg:flex gap-4">
@@ -760,7 +852,7 @@ export default function HomePage() {
             <HexagonStep
               step="Step 3."
               title="Place Your Order & Enter Production"
-              text="Approve your proof and specifications, then the project moves into scheduled production."
+              text="Approve your digital proofs and we move into physical manufacturing immediately."
               color="#FFFFFF"
               delay={0.4}
             />
@@ -790,7 +882,7 @@ export default function HomePage() {
               <h2 className="font-display text-6xl md:text-8xl font-bold uppercase tracking-tighter leading-[0.85]">Lab<br />Showroom.</h2>
             </div>
             <p className="font-sans text-base font-bold text-lab-black/50 max-w-xs leading-relaxed">
-              Step into the lab. Explore the apparel, materials, and quality-control details behind the finished work.
+              Step into the lab. Explore materials and techniques in a 3D environment. Click to zoom into the details.
             </p>
           </div>
         </div>
@@ -821,7 +913,7 @@ export default function HomePage() {
             {[
               {
                 title: "Durable Printing",
-                text: "Ink, mesh, cure, and print method are matched to the fabric so each graphic is built for clarity, feel, and durability.",
+                text: "We use industrial-grade inks that bond directly to the fabric. Your prints won't fade, crack, or peel, even after heavy use.",
                 delay: 0.1
               },
               {
@@ -831,7 +923,7 @@ export default function HomePage() {
               },
               {
                 title: "Premium Fabrics",
-                text: "We match garment weight, fiber content, and hand feel to the brief, then select the print method that best suits the material.",
+                text: "We only use high-GSM cotton and durable blends. Our fabrics are chosen for their feel and how well they hold up to printing.",
                 delay: 0.3
               },
               {
@@ -910,11 +1002,115 @@ export default function HomePage() {
 
         <div className="mt-16 flex justify-center">
           <Link to="/services" className="group flex items-center gap-4 border border-lab-black/10 px-12 py-6 rounded-full font-sans font-bold uppercase tracking-widest text-[12px] hover:bg-lab-black hover:text-white transition-all duration-500">
-            Explore Capabilities
+            View All Projects
             <ArrowRight className="w-3 h-3 group-hover:translate-x-2 transition-transform" />
           </Link>
         </div>
       </section>
-    </main>
+      </main>
+
+      {/* Footer - restored from the original homepage */}
+      <footer className="bg-lab-white py-24 px-8 border-t border-lab-line transition-colors duration-300">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-20 mb-20">
+          <div className="md:col-span-6">
+            <div className="h-10 mb-12">
+              <img
+                src="/assets/brand/merchcraft-primary-full.svg"
+                alt="Merchcraft Logo"
+                className="h-full w-auto"
+              />
+            </div>
+            <h2 className="font-display text-5xl md:text-6xl font-bold uppercase tracking-tighter mb-10 leading-tight">
+              Ready to start<br />your next order?
+            </h2>
+            <Link to="/quote" className="inline-flex bg-lab-black text-white px-12 py-6 rounded-full font-sans font-bold uppercase tracking-widest text-[12px] hover:opacity-80 transition-opacity">
+              Enter Production
+            </Link>
+          </div>
+
+          <div className="md:col-span-2">
+            <h5 className="font-sans text-[12px] font-bold uppercase tracking-[0.3em] text-lab-black/30 mb-10">Company</h5>
+            <ul className="space-y-4 font-sans text-sm uppercase tracking-widest font-bold">
+              <li><Link to="/about" className="hover:opacity-50 transition-opacity">About</Link></li>
+              <li><Link to="/services" className="hover:opacity-50 transition-opacity">Services</Link></li>
+              <li><a href="#" className="hover:opacity-50 transition-opacity">Fabrics</a></li>
+              <li><a href="#" className="hover:opacity-50 transition-opacity">Careers</a></li>
+            </ul>
+          </div>
+
+          <div className="md:col-span-2">
+            <h5 className="font-sans text-[12px] font-bold uppercase tracking-[0.3em] text-lab-black/30 mb-10">Connect</h5>
+            <ul className="space-y-4 font-sans text-sm uppercase tracking-widest font-bold">
+              <li><a href="#" className="hover:opacity-50 transition-opacity">Instagram</a></li>
+              <li><a href="#" className="hover:opacity-50 transition-opacity">LinkedIn</a></li>
+              <li><a href="#" className="hover:opacity-50 transition-opacity">Twitter</a></li>
+            </ul>
+          </div>
+
+          <div className="md:col-span-2">
+            <h5 className="font-sans text-[12px] font-bold uppercase tracking-[0.3em] text-lab-black/30 mb-10">Legal</h5>
+            <ul className="space-y-4 font-sans text-sm uppercase tracking-widest font-bold">
+              <li><a href="#" className="hover:opacity-50 transition-opacity">Privacy</a></li>
+              <li><a href="#" className="hover:opacity-50 transition-opacity">Terms</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="pt-12 border-t border-lab-line flex flex-col md:flex-row justify-between items-center gap-8 font-sans text-[11px] font-bold uppercase tracking-[0.3em] text-lab-black/30">
+          <p>© 2026 Merchcraft Apparel Lab. All Rights Reserved.</p>
+          <div className="flex gap-10">
+            <span>Santa Ana, CA</span>
+            <span>Facility No. 42</span>
+          </div>
+        </div>
+      </footer>
+
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed inset-0 z-[100] bg-lab-white p-10 flex flex-col transition-colors duration-300"
+          >
+            <div className="flex justify-between items-center mb-20">
+              <div className="h-6">
+                <img src="/assets/brand/merchcraft-primary-full.svg" alt="Logo" className="h-full" />
+              </div>
+              <button type="button" aria-label="Close navigation" onClick={() => setIsMenuOpen(false)}>
+                <X className="w-8 h-8" />
+              </button>
+            </div>
+            <nav className="flex flex-col gap-8">
+              <Link to="/services" className="font-impact text-5xl md:text-7xl uppercase tracking-tighter hover:text-stroke transition-all" onClick={() => setIsMenuOpen(false)}>Services</Link>
+              {['Showroom', 'Culture', 'Projects', 'Live Screen Printing'].map((item) => (
+                <a
+                  key={item}
+                  href="#"
+                  className="font-impact text-5xl md:text-7xl uppercase tracking-tighter hover:text-stroke transition-all"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item}
+                </a>
+              ))}
+              <Link to="/quote" className="bg-lab-red text-white w-full py-6 rounded-full text-center font-sans font-bold uppercase tracking-widest text-xs hover:bg-lab-black transition-all duration-300 shadow-lg mt-4" onClick={() => setIsMenuOpen(false)}>
+                Begin Your Build
+              </Link>
+            </nav>
+            <div className="mt-auto pt-10 border-t border-lab-line flex justify-between items-end">
+              <div className="font-sans text-[10px] uppercase tracking-widest text-lab-black/40">
+                Santa Ana / CA<br />Quality Apparel Printing
+              </div>
+              <div className="flex gap-6">
+                <Instagram className="w-5 h-5" />
+                <Twitter className="w-5 h-5" />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
