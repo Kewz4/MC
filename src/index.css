@@ -1,31 +1,156 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Anton&display=swap');
 @import "tailwindcss";
+
+@font-face {
+  font-family: "Anton";
+  src: url("/assets/fonts/anton-regular.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("/assets/fonts/inter-variable.woff2") format("woff2-variations");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 100 900;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("/assets/fonts/inter-variable-italic.woff2") format("woff2-variations");
+  font-display: swap;
+  font-style: italic;
+  font-weight: 100 900;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("/assets/fonts/space-grotesk-variable.woff2") format("woff2-variations");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 300 700;
+}
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", sans-serif;
-  --font-serif: "Libre Baskerville", serif;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-impact: "Anton", sans-serif;
+  --font-mono: "Space Grotesk", ui-monospace, monospace;
 
-  --color-lab-black: #141414;
-  --color-lab-white: #F5F5F5;
-  --color-lab-red: #A32A29;
-  --color-lab-gold: #C5A059;
-  --color-lab-line: rgba(20, 20, 20, 0.1);
+  --color-lab-black: #101820;
+  --color-lab-white: #ffffff;
+  --color-lab-paper: #f4f4f1;
+  --color-lab-red: #cc112c;
+  --color-lab-gold: #cb9933;
+  --color-lab-line: rgba(16, 24, 32, 0.14);
 }
 
 @layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    background: var(--color-lab-white);
+    position: relative;
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-lab-white text-lab-black font-sans antialiased transition-colors duration-300;
+    @apply m-0 bg-lab-white text-lab-black font-sans antialiased;
+    min-width: 320px;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-lab-red);
+    outline-offset: 4px;
+  }
+
+  ::selection {
+    background: var(--color-lab-red);
+    color: white;
   }
 }
 
 .lab-grid {
-  background-image: radial-gradient(var(--grid-color, var(--color-lab-line)) 1px, transparent 1px);
-  background-size: 60px 60px;
+  background-image:
+    linear-gradient(to right, var(--grid-color, rgba(16, 24, 32, 0.08)) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-color, rgba(16, 24, 32, 0.08)) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.lab-dots {
+  background-image: radial-gradient(var(--dot-color, rgba(16, 24, 32, 0.22)) 1px, transparent 1px);
+  background-size: 12px 12px;
+}
+
+.halftone-mask {
+  mask-image: radial-gradient(circle at center, black 35%, transparent 76%);
 }
 
 .text-stroke {
   -webkit-text-stroke: 1px var(--stroke-color, var(--color-lab-black));
   color: transparent;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.field-line {
+  position: relative;
+}
+
+.field-line::after {
+  background: var(--color-lab-red);
+  bottom: -1px;
+  content: "";
+  height: 2px;
+  left: 0;
+  position: absolute;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 240ms ease;
+  width: 100%;
+}
+
+.field-line:focus-within::after {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
