@@ -17,28 +17,28 @@ const services = [
     title: 'DTG and DTF',
     description: 'Flexible options for detailed, full-color artwork and shorter runs. We’ll recommend the right method for your fabric, quantity, and desired feel.',
     fit: ['Detailed artwork', 'Full-color graphics', 'Shorter or mixed runs'],
-    image: '/assets/images/bts-table.jpg',
+    image: '/assets/images/services-digital-v3.webp',
   },
   {
     id: 'embroidery',
     title: 'Embroidery',
     description: 'Clean, dimensional stitching for hats, workwear, outerwear, and premium brand pieces.',
     fit: ['Headwear', 'Workwear and outerwear', 'Premium brand marks'],
-    image: '/assets/images/bts-hands.jpg',
+    image: '/assets/images/services-embroidery-v3.webp',
   },
   {
     id: 'finishing',
     title: 'Retail finishing',
     description: 'Custom labels, hangtags, folding, bagging, and barcodes that make every piece ready for retail or delivery.',
     fit: ['Labels and hangtags', 'Fold and bag', 'Retail-ready presentation'],
-    image: '/assets/images/bts-folding.jpg',
+    image: '/assets/images/services-finishing-v3.webp',
   },
   {
     id: 'fulfillment',
     title: 'Fulfillment',
     description: 'Reliable support for launches, repeat orders, and ongoing merchandise programs.',
     fit: ['One-off launches', 'Repeat programs', 'Ongoing support'],
-    image: '/assets/images/bts-workshop.jpg',
+    image: '/assets/images/services-fulfillment-v3.webp',
   },
 ];
 
@@ -101,7 +101,7 @@ export default function ServicesPage() {
             </div>
 
             <div className="grid bg-white lg:grid-cols-2">
-              <div className="min-h-[360px] overflow-hidden lg:min-h-[590px]">
+              <div className="relative aspect-[4/3] overflow-hidden lg:aspect-auto lg:min-h-[590px]">
                 <AnimatePresence mode="wait">
                   <motion.img
                     key={active.id}
@@ -111,7 +111,7 @@ export default function ServicesPage() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="h-full w-full object-cover"
+                    className="absolute inset-0 h-full w-full object-cover"
                   />
                 </AnimatePresence>
               </div>

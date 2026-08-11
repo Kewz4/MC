@@ -19,7 +19,7 @@ const processSteps = [
     index: '02',
     title: 'Choose the right method.',
     copy: 'Garment, print or stitch method, placement, scale, and color are considered together so the result feels intentional.',
-    image: '/assets/images/services-quality-v2.webp',
+    image: '/assets/images/about-method-v3.webp',
     alt: 'Screen-print and embroidery samples being compared on black fabric',
   },
   {
@@ -117,7 +117,7 @@ export default function AboutPage() {
   return (
     <main ref={pageRef} className="bg-white">
       <section ref={heroRef} className="relative flex min-h-[94vh] items-end overflow-hidden bg-lab-black px-6 pb-12 pt-32 text-white sm:px-8 lg:px-10 lg:pb-16">
-        <img src="/assets/images/about-printmaker-v2.webp" alt="A printmaker pulling ink across a screen in the Merchcraft workshop" className="about-hero-image absolute inset-0 h-[110%] w-full object-cover" />
+        <img src="/assets/images/about-hero-v3.webp" alt="Merchcraft makers working across printing, embroidery, and finishing stations" className="about-hero-image absolute inset-0 h-[110%] w-full object-cover object-center" />
         <div className="absolute inset-0 bg-gradient-to-b from-lab-black/20 via-lab-black/10 to-lab-black/90" />
 
         <div className="relative z-10 mx-auto w-full max-w-7xl">
@@ -209,7 +209,7 @@ export default function AboutPage() {
       <section className="bg-lab-black px-6 py-20 text-white sm:px-8 lg:px-10 lg:py-28">
         <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div className="overflow-hidden">
-            <img src="/assets/images/bts-table.jpg" alt="Merchcraft team reviewing garments and production details" loading="lazy" className="aspect-[4/3] h-full w-full object-cover" />
+            <img src="/assets/images/about-team-v3.webp" alt="Merchcraft team reviewing a finished garment and fabric details" loading="lazy" className="aspect-[4/3] h-full w-full object-cover" />
           </div>
           <div className="lg:pl-8">
             <p className="font-sans text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">The team behind the work</p>

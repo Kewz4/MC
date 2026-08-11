@@ -2,12 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import {
   ArrowRight,
-  Menu,
-  X,
-  Search,
-  User,
-  Instagram,
-  Twitter,
   FlaskConical,
   Zap,
   Shirt
@@ -17,13 +11,6 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Link } from 'react-router-dom';
 
 gsap.registerPlugin(ScrollTrigger);
-
-const NavLink = ({ children, to = '#', className = '' }: { children: React.ReactNode; to?: string; className?: string }) => (
-  <Link to={to} className={`font-sans font-bold text-[13px] uppercase tracking-[0.12em] opacity-60 hover:opacity-100 transition-opacity whitespace-nowrap ${className}`}>
-    {children}
-  </Link>
-);
-
 
 const ProjectCard = ({ src, title, category, delay = 0 }: { src: string; title: string; category: string; delay?: number }) => (
   <motion.div
@@ -655,14 +642,6 @@ const InkTankSection = () => {
 
 export default function HomePage() {
   const heroRef = useRef<HTMLDivElement>(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -687,52 +666,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen selection:bg-lab-red selection:text-white overflow-x-hidden bg-lab-white transition-colors duration-300">
-      {/* Navigation - restored from the original homepage */}
-      <nav className={`fixed top-0 left-0 w-full z-50 px-8 transition-all duration-300 flex justify-between items-center bg-white/95 backdrop-blur-md border-b border-lab-line ${isScrolled ? 'py-2.5' : 'py-5'}`}>
-        <div className="hidden lg:flex gap-6 items-center flex-1">
-          <NavLink to="/services">Services</NavLink>
-          <NavLink>Showroom</NavLink>
-          <NavLink>Culture</NavLink>
-          <NavLink>Projects</NavLink>
-          <NavLink className="tracking-[0.05em]">Live Screen Printing</NavLink>
-        </div>
-
-        <div className="flex-1 flex justify-center">
-          <Link to="/" aria-label="Merchcraft home" className={`block transition-all duration-500 cursor-pointer ${isScrolled ? 'h-6' : 'h-10'}`}>
-            <img
-              src="/assets/brand/merchcraft-primary-full.svg"
-              alt="Merchcraft Logo"
-              className="h-full w-auto"
-            />
-          </Link>
-        </div>
-
-        <div className="hidden lg:flex gap-8 items-center flex-1 justify-end">
-          <div className="flex gap-4 items-center">
-            <div className="flex items-center gap-2 cursor-pointer hover:opacity-50 transition-opacity">
-              <Search className="w-3.5 h-3.5" />
-              <span className="font-sans font-bold text-[12px] uppercase tracking-widest">Search</span>
-            </div>
-            <div className="flex items-center gap-2 cursor-pointer hover:opacity-50 transition-opacity">
-              <User className="w-3.5 h-3.5" />
-              <span className="font-sans font-bold text-[12px] uppercase tracking-widest">Account</span>
-            </div>
-            <Link to="/quote" className="bg-lab-red text-white px-5 py-2 rounded-full font-sans font-bold uppercase tracking-widest text-[12px] hover:bg-lab-black transition-all duration-300 shadow-lg">
-              Begin Your Build
-            </Link>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          className="lg:hidden flex gap-4 items-center"
-          aria-label="Open navigation"
-          onClick={() => setIsMenuOpen(true)}
-        >
-          <Menu className="w-6 h-6" />
-        </button>
-      </nav>
-
       <main>
       {/* Hero Section - Full Width with Integrated Text */}
       <section ref={heroRef} className="relative min-h-screen flex flex-col bg-white pt-24 overflow-hidden">
@@ -1065,52 +998,6 @@ export default function HomePage() {
         </div>
       </footer>
 
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {isMenuOpen && (
-          <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] bg-lab-white p-10 flex flex-col transition-colors duration-300"
-          >
-            <div className="flex justify-between items-center mb-20">
-              <div className="h-6">
-                <img src="/assets/brand/merchcraft-primary-full.svg" alt="Logo" className="h-full" />
-              </div>
-              <button type="button" aria-label="Close navigation" onClick={() => setIsMenuOpen(false)}>
-                <X className="w-8 h-8" />
-              </button>
-            </div>
-            <nav className="flex flex-col gap-8">
-              <Link to="/services" className="font-impact text-5xl md:text-7xl uppercase tracking-tighter hover:text-stroke transition-all" onClick={() => setIsMenuOpen(false)}>Services</Link>
-              {['Showroom', 'Culture', 'Projects', 'Live Screen Printing'].map((item) => (
-                <a
-                  key={item}
-                  href="#"
-                  className="font-impact text-5xl md:text-7xl uppercase tracking-tighter hover:text-stroke transition-all"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item}
-                </a>
-              ))}
-              <Link to="/quote" className="bg-lab-red text-white w-full py-6 rounded-full text-center font-sans font-bold uppercase tracking-widest text-xs hover:bg-lab-black transition-all duration-300 shadow-lg mt-4" onClick={() => setIsMenuOpen(false)}>
-                Begin Your Build
-              </Link>
-            </nav>
-            <div className="mt-auto pt-10 border-t border-lab-line flex justify-between items-end">
-              <div className="font-sans text-[10px] uppercase tracking-widest text-lab-black/40">
-                Santa Ana / CA<br />Quality Apparel Printing
-              </div>
-              <div className="flex gap-6">
-                <Instagram className="w-5 h-5" />
-                <Twitter className="w-5 h-5" />
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

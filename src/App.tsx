@@ -48,7 +48,6 @@ function RouteEffects() {
 function InteriorLayout() {
   return (
     <>
-      <SiteHeader />
       <Suspense
         fallback={
           <div className="flex min-h-screen items-center justify-center bg-lab-white">
@@ -67,6 +66,7 @@ function PageRoutes() {
   return (
     <>
       <RouteEffects />
+      <SiteHeader />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route element={<InteriorLayout />}>

@@ -100,9 +100,6 @@ export default function ContactPage() {
               <p className="font-sans text-sm font-bold uppercase tracking-[0.14em] text-lab-red">Send us a message</p>
               <h2 className="mt-7 font-display text-[clamp(3.2rem,5.5vw,6rem)] font-bold uppercase leading-[0.9] tracking-tighter">Tell us what<br />you need.</h2>
               <p className="mt-7 max-w-md text-base font-medium leading-relaxed text-lab-black/60">Share a few details and we’ll make sure your message gets to the right person.</p>
-              <div className="mt-10 overflow-hidden">
-                <img src="/assets/images/bts-table.jpg" alt="Garments and production references on a Merchcraft workbench" loading="lazy" className="aspect-[4/3] h-full w-full object-cover" />
-              </div>
             </div>
           </div>
 
