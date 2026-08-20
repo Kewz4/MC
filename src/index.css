@@ -32,35 +32,19 @@
   font-weight: 300 700;
 }
 
-@font-face {
-  font-family: "Libre Baskerville";
-  src: url("/assets/fonts/libre-baskerville-variable.woff2") format("woff2-variations");
-  font-display: swap;
-  font-style: normal;
-  font-weight: 400 700;
-}
-
-@font-face {
-  font-family: "Libre Baskerville";
-  src: url("/assets/fonts/libre-baskerville-variable-italic.woff2") format("woff2-variations");
-  font-display: swap;
-  font-style: italic;
-  font-weight: 400 700;
-}
-
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Libre Baskerville", serif;
+  --font-display: "Anton", ui-sans-serif, sans-serif;
   --font-impact: "Anton", sans-serif;
+  --font-accent: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Space Grotesk", ui-monospace, monospace;
 
-  --color-lab-black: #141414;
-  --color-lab-white: #f5f5f5;
-  --color-lab-paper: #f5f5f5;
-  --color-lab-red: #a32a29;
-  --color-lab-gold: #c5a059;
-  --color-lab-line: rgba(20, 20, 20, 0.1);
+  --color-lab-black: #101820;
+  --color-lab-white: #ffffff;
+  --color-lab-paper: #ffffff;
+  --color-lab-red: #cc112c;
+  --color-lab-gold: #cb9933;
+  --color-lab-line: rgba(16, 24, 32, 0.1);
 }
 
 @layer base {

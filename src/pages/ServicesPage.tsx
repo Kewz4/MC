@@ -59,9 +59,9 @@ export default function ServicesPage() {
       <section className="px-6 pb-16 pt-32 sm:px-8 lg:px-10 lg:pb-24 lg:pt-40">
         <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}>
-            <p className="font-sans text-sm font-bold uppercase tracking-[0.14em] text-lab-red">Our services</p>
+            <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-red">Our services</p>
             <h1 className="mt-7 font-display text-[clamp(4rem,8.5vw,8.5rem)] font-bold uppercase leading-[0.84] tracking-tighter">
-              Apparel made<br />for <span className="font-serif italic normal-case text-lab-gold">your brand.</span>
+              Apparel made<br />for <span className="font-display normal-case text-lab-gold">your brand.</span>
             </h1>
             <p className="mt-9 max-w-xl text-base font-medium leading-relaxed text-lab-black/60 sm:text-lg">
               From screen printing and embroidery to finishing and fulfillment, we help turn your ideas into apparel people want to wear.
@@ -143,7 +143,7 @@ export default function ServicesPage() {
             <img src="/assets/images/services-quality-v2.webp" alt="Screen-print and embroidery samples being inspected before production" loading="lazy" className="aspect-[4/3] h-full w-full object-cover" />
           </div>
           <div className="lg:pl-10">
-            <p className="font-sans text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">Before production</p>
+            <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">Before production</p>
             <h2 className="mt-7 font-display text-[clamp(3.2rem,6vw,6.5rem)] font-bold uppercase leading-[0.9] tracking-tighter">Approved before<br />it goes to press.</h2>
             <p className="mt-8 max-w-xl text-base font-medium leading-relaxed text-white/65">We review artwork, placement, color, and finishing details with you before production begins.</p>
             <ul className="mt-10 grid gap-x-8 sm:grid-cols-2">

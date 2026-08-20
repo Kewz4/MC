@@ -335,10 +335,10 @@ const InteractiveLab = () => {
 const PantoneFan = () => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const colors = [
-    { hex: '#A32A29', name: 'Merchcraft Red', code: '187 C' },
-    { hex: '#C5A059', name: 'Apparel Gold', code: '4515 C' },
-    { hex: '#141414', name: 'Carbon Black', code: 'Black 6 C' },
-    { hex: '#F5F5F5', name: 'Lab White', code: 'Cool Gray 1 C' },
+    { hex: '#CC112C', name: 'Merchcraft Red', code: '186 C' },
+    { hex: '#CB9933', name: 'Brand Gold', code: '7407 C' },
+    { hex: '#101820', name: 'Brand Black', code: 'Black 6 C' },
+    { hex: '#FFFFFF', name: 'Pure White', code: 'White' },
     { hex: '#5A5A40', name: 'Olive Drab', code: '5743 C' },
     { hex: '#2A3B4C', name: 'Deep Navy', code: '296 C' },
     { hex: '#E27D60', name: 'Terracotta', code: '7522 C' },
@@ -703,7 +703,7 @@ export default function HomePage() {
               className="text-[8vw] md:text-[6vw] leading-[0.9] tracking-tighter mb-8"
             >
               <span className="font-display font-bold uppercase text-white block">Your Merch,</span>
-              <span className="font-serif italic text-white block opacity-90">Our Craft.</span>
+              <span className="font-display text-white block opacity-90">Our Craft.</span>
             </motion.h1>
 
             <motion.p

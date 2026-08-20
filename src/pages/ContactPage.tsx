@@ -59,8 +59,8 @@ export default function ContactPage() {
       <section className="px-6 pb-16 pt-32 sm:px-8 lg:px-10 lg:pb-24 lg:pt-40">
         <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}>
-            <p className="font-sans text-sm font-bold uppercase tracking-[0.14em] text-lab-red">Contact</p>
-            <h1 className="mt-7 font-display text-[clamp(4rem,8vw,8rem)] font-bold uppercase leading-[0.84] tracking-tighter">Let’s make something<br /><span className="font-serif italic normal-case text-lab-gold">worth wearing.</span></h1>
+            <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-red">Contact</p>
+            <h1 className="mt-7 font-display text-[clamp(4rem,8vw,8rem)] font-bold uppercase leading-[0.84] tracking-tighter">Let’s make something<br /><span className="font-display normal-case text-lab-gold">worth wearing.</span></h1>
             <p className="mt-9 max-w-xl text-base font-medium leading-relaxed text-lab-black/60 sm:text-lg">Tell us what you’re planning and we’ll connect you with the right person.</p>
             <a href="#message" className="mt-10 inline-flex rounded-full bg-lab-red px-8 py-4 font-sans text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-lab-black">Send a message</a>
           </motion.div>
@@ -97,7 +97,7 @@ export default function ContactPage() {
         <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
           <div>
             <div className="sticky top-24">
-              <p className="font-sans text-sm font-bold uppercase tracking-[0.14em] text-lab-red">Send us a message</p>
+              <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-red">Send us a message</p>
               <h2 className="mt-7 font-display text-[clamp(3.2rem,5.5vw,6rem)] font-bold uppercase leading-[0.9] tracking-tighter">Tell us what<br />you need.</h2>
               <p className="mt-7 max-w-md text-base font-medium leading-relaxed text-lab-black/60">Share a few details and we’ll make sure your message gets to the right person.</p>
             </div>

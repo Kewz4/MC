@@ -172,7 +172,7 @@ export default function QuotePage() {
         <div className="mx-auto w-full max-w-5xl text-center">
           <span role="status" className="sr-only">Quote request received successfully.</span>
           <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-lab-black text-white"><Check className="h-7 w-7" strokeWidth={3} aria-hidden="true" /></span>
-          <p className="mt-8 font-sans text-sm font-bold uppercase tracking-[0.14em] text-lab-black/55">Request received</p>
+          <p className="mt-8 font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-black/55">Request received</p>
           <h1 ref={successHeadingRef} tabIndex={-1} className="mt-6 font-display text-[clamp(4rem,10vw,9rem)] font-bold uppercase leading-[0.84] tracking-tighter">Thanks for<br />your request.</h1>
           <p className="mx-auto mt-8 max-w-2xl text-base font-semibold leading-relaxed text-lab-black/65">We’ll review the details and follow up with recommendations, pricing, and next steps. This is a project request, not a final quote.</p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
@@ -213,8 +213,8 @@ export default function QuotePage() {
       <section className="bg-lab-black px-6 pb-16 pt-32 text-white sm:px-8 lg:px-10 lg:pb-24 lg:pt-40">
         <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}>
-            <p className="font-sans text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">Request a quote</p>
-            <h1 className="mt-7 font-display text-[clamp(4rem,8vw,8.5rem)] font-bold uppercase leading-[0.84] tracking-tighter">Tell us what<br />you’re <span className="font-serif italic normal-case text-lab-gold">making.</span></h1>
+            <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">Request a quote</p>
+            <h1 className="mt-7 font-display text-[clamp(4rem,8vw,8.5rem)] font-bold uppercase leading-[0.84] tracking-tighter">Tell us what<br />you’re <span className="font-display normal-case text-lab-gold">making.</span></h1>
             <p className="mt-9 max-w-xl text-base font-medium leading-relaxed text-white/65 sm:text-lg">Share a few project details and we’ll follow up with recommendations, pricing, and next steps.</p>
           </motion.div>
           <motion.div initial={{ opacity: 0, scale: 1.035 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }} className="overflow-hidden">

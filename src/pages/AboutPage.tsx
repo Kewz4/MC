@@ -121,10 +121,10 @@ export default function AboutPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-lab-black/20 via-lab-black/10 to-lab-black/90" />
 
         <div className="relative z-10 mx-auto w-full max-w-7xl">
-          <p className="mb-7 font-sans text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">About Merchcraft</p>
+          <p className="mb-7 font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">About Merchcraft</p>
           <h1 className="font-display text-[clamp(3.1rem,11vw,11rem)] font-bold uppercase leading-[0.82] tracking-tighter">
             <span className="block overflow-hidden"><span className="about-hero-word block">The people</span></span>
-            <span className="block overflow-hidden"><span className="about-hero-word block">behind <span className="font-serif italic normal-case text-lab-gold">the work.</span></span></span>
+            <span className="block overflow-hidden"><span className="about-hero-word block">behind <span className="font-display normal-case text-lab-gold">the work.</span></span></span>
           </h1>
           <div className="mt-9 flex flex-col gap-6 border-t border-white/35 pt-7 sm:flex-row sm:items-end sm:justify-between">
             <p className="max-w-2xl text-base font-medium leading-relaxed text-white/72 sm:text-lg">We help brands turn ideas into apparel through thoughtful production, close collaboration, and careful finishing.</p>
@@ -138,7 +138,7 @@ export default function AboutPage() {
       <section className="bg-white px-6 py-20 sm:px-8 lg:px-10 lg:py-28">
         <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.55fr_1.45fr]">
           <div>
-            <p className="font-sans text-sm font-bold uppercase tracking-[0.14em] text-lab-red">Who we are</p>
+            <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-red">Who we are</p>
           </div>
           <div>
             <h2 className="max-w-5xl font-display text-[clamp(3rem,6vw,6.5rem)] font-bold uppercase leading-[0.9] tracking-tighter">A hands-on apparel partner from concept through delivery.</h2>
@@ -153,7 +153,7 @@ export default function AboutPage() {
       <section id="how-we-work" ref={processRef} className="border-y border-lab-line bg-lab-white px-6 py-20 sm:px-8 lg:px-10 lg:py-28">
         <div className="mx-auto max-w-7xl">
           <div className="mb-14 grid gap-8 lg:grid-cols-2 lg:items-end">
-            <h2 className="font-display text-[clamp(3.5rem,7vw,7.5rem)] font-bold uppercase leading-[0.86] tracking-tighter">One garment.<br /><span className="font-serif italic normal-case text-lab-red">Many hands.</span></h2>
+            <h2 className="font-display text-[clamp(3.5rem,7vw,7.5rem)] font-bold uppercase leading-[0.86] tracking-tighter">One garment.<br /><span className="font-display normal-case text-lab-red">Many hands.</span></h2>
             <p className="max-w-xl text-base font-medium leading-relaxed text-lab-black/60 lg:justify-self-end">Every project moves through a series of human decisions—from the first conversation to the final fold.</p>
           </div>
 
@@ -184,7 +184,7 @@ export default function AboutPage() {
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-end">
             <div>
-              <p className="font-sans text-sm font-bold uppercase tracking-[0.14em] text-lab-red">Who we work with</p>
+              <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-red">Who we work with</p>
               <h2 className="mt-7 font-display text-[clamp(3rem,5.5vw,6rem)] font-bold uppercase leading-[0.9] tracking-tighter">Built for a first drop.<br />Ready for what comes next.</h2>
             </div>
             <p className="max-w-xl text-base font-medium leading-relaxed text-lab-black/62 lg:justify-self-end">The work can be a focused launch or a continuing program. The standard stays the same: clear direction and production details that hold together.</p>
@@ -212,7 +212,7 @@ export default function AboutPage() {
             <img src="/assets/images/about-team-v3.webp" alt="Merchcraft team reviewing a finished garment and fabric details" loading="lazy" className="aspect-[4/3] h-full w-full object-cover" />
           </div>
           <div className="lg:pl-8">
-            <p className="font-sans text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">The team behind the work</p>
+            <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">The team behind the work</p>
             <h2 className="mt-7 font-display text-[clamp(3rem,5.5vw,6rem)] font-bold uppercase leading-[0.9] tracking-tighter">Different skills.<br />One finished piece.</h2>
             <div className="mt-10 grid gap-x-8 sm:grid-cols-2">
               {teamFunctions.map(([title, copy]) => (
