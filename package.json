@@ -6,11 +6,16 @@
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
+    "build:shopify": "npm run build && node scripts/build-shopify-staging.mjs",
+    "recolor:spline": "node scripts/recolor-spline-scene.mjs",
+    "build:spline:v3": "node scripts/build-spline-scene-v3.mjs",
     "preview": "vite preview",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@splinetool/react-spline": "^4.1.0",
+    "@splinetool/runtime": "^2.0.2",
     "gsap": "^3.14.2",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
@@ -20,8 +25,9 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.2",
-    "@vitejs/plugin-react": "^5.2.0",
     "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "msgpackr": "2.0.5",
     "tailwindcss": "^4.2.2",
     "typescript": "~5.8.2",
     "vite": "^6.4.3"

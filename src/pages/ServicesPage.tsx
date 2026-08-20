@@ -137,6 +137,20 @@ export default function ServicesPage() {
         </div>
       </section>
 
+      <section className="bg-white px-6 py-20 sm:px-8 lg:px-10 lg:py-28">
+        <div className="mx-auto grid max-w-7xl overflow-hidden bg-lab-black text-white lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="p-8 sm:p-12 lg:p-16">
+            <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">Beyond apparel</p>
+            <h2 className="mt-6 font-display text-[clamp(3rem,5.5vw,5.8rem)] font-bold uppercase tracking-tighter">Custom stickers<br />built for the brand.</h2>
+            <p className="mt-7 max-w-xl text-base font-medium leading-relaxed text-white/68">Explore sticker formats and surface directions, then send a project-specific quote request with size, quantity, and artwork details.</p>
+            <Link to="/stickers" className="group mt-9 inline-flex min-h-14 items-center gap-4 rounded-full bg-lab-gold px-8 font-sans text-xs font-bold uppercase tracking-widest text-lab-black transition-colors hover:bg-white">
+              Explore custom stickers <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+            </Link>
+          </div>
+          <img src="/assets/images/stickers-materials-v1.webp" alt="A close-up comparison of custom sticker surface directions" loading="lazy" className="aspect-[4/3] h-full w-full object-cover lg:aspect-auto" />
+        </div>
+      </section>
+
       <section className="bg-lab-black px-6 py-20 text-white sm:px-8 lg:px-10 lg:py-28">
         <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-2 lg:items-center">
           <div className="overflow-hidden">

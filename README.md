@@ -1,11 +1,12 @@
 # Merchcraft Apparel Lab
 
-A responsive React/Vite site for Merchcraft, built around the brand’s apparel-lab visual system. The site includes the existing homepage plus dedicated Services, About, Contact, and Quote experiences.
+A responsive React/Vite site for Merchcraft, built around the brand’s apparel-lab visual system. The site includes the existing homepage plus dedicated Services, Stickers, About, Contact, and Quote experiences.
 
 ## Routes
 
 - `/` — Homepage
 - `/services` — Capabilities switchboard, proofing standards, and production flow
+- `/stickers` — Custom sticker education, surface preview, and project-specific quote request
 - `/about` — Scroll-driven production story and company overview
 - `/contact` — Contact routing and Netlify-ready work-order form
 - `/quote` — Four-step build request with live summary and optional artwork upload
@@ -28,6 +29,8 @@ npm run build
 
 ## Deployment
 
-The repository includes Netlify SPA redirects and static form definitions in `index.html`, allowing the React-rendered `contact` and `quote` forms to be detected during deployment.
+The repository includes Netlify SPA redirects and static form definitions in `index.html`, allowing the React-rendered `contact`, `quote`, and `sticker_quote` forms to be detected during deployment. Set `VITE_FORM_PROVIDER=netlify` for that deployment.
+
+On Shopify, the sticker page falls back to the theme's `#mc-shopify-contact-form` for request details and artwork share links. Set `VITE_STICKER_QUOTE_ENDPOINT` to a secure multipart endpoint when direct artwork upload is required. On Vercel or another non-Shopify host, the endpoint is required. The page intentionally does not report a successful delivery when no supported form destination is available.
 
 Brand logos, self-hosted WOFF2 fonts, licenses, and production imagery live under `public/assets/`.

@@ -71,12 +71,12 @@ export default function SiteHeader() {
   return (
     <>
       <header className={`fixed left-0 top-0 z-50 flex w-full items-center justify-between border-b border-lab-line bg-white/95 px-8 backdrop-blur-md transition-all duration-300 ${isScrolled ? 'py-2.5' : 'py-5'}`}>
-        <nav aria-label="Primary" className="hidden flex-1 items-center gap-6 lg:flex">
+        <nav aria-label="Primary" className="hidden flex-1 items-center gap-6 xl:flex">
           <HeaderLink to="/services">Services</HeaderLink>
+          <HeaderLink to="/stickers">Stickers</HeaderLink>
           <HeaderLink>Showroom</HeaderLink>
           <HeaderLink>Culture</HeaderLink>
           <HeaderLink>Projects</HeaderLink>
-          <HeaderLink className="tracking-[0.05em]">Live Screen Printing</HeaderLink>
         </nav>
 
         <div className="flex flex-1 justify-center">
@@ -85,7 +85,7 @@ export default function SiteHeader() {
           </Link>
         </div>
 
-        <div className="hidden flex-1 items-center justify-end gap-8 lg:flex">
+        <div className="hidden flex-1 items-center justify-end gap-8 xl:flex">
           <div className="flex items-center gap-4">
             <div className="flex cursor-pointer items-center gap-2 transition-opacity hover:opacity-50">
               <Search className="h-3.5 w-3.5" aria-hidden="true" />
@@ -104,7 +104,7 @@ export default function SiteHeader() {
         <button
           ref={menuButtonRef}
           type="button"
-          className="flex items-center gap-4 lg:hidden"
+          className="flex items-center gap-4 xl:hidden"
           aria-label="Open navigation"
           aria-expanded={isMenuOpen}
           aria-controls="mobile-navigation"
@@ -126,9 +126,9 @@ export default function SiteHeader() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] flex flex-col bg-lab-white p-10 transition-colors duration-300"
+            className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-lab-white p-6 transition-colors duration-300 sm:p-10"
           >
-            <div className="mb-20 flex items-center justify-between">
+            <div className="mb-10 flex items-center justify-between sm:mb-16">
               <Link to="/" aria-label="Merchcraft home" className="h-6" onClick={() => setIsMenuOpen(false)}>
                 <img src="/assets/brand/merchcraft-primary-full.svg" alt="" className="h-full w-auto" />
               </Link>
@@ -145,19 +145,20 @@ export default function SiteHeader() {
               </button>
             </div>
 
-            <nav aria-label="Mobile" className="flex flex-col gap-8">
-              <Link to="/services" className="font-impact text-5xl uppercase tracking-tighter transition-all hover:text-stroke md:text-7xl" onClick={() => setIsMenuOpen(false)}>Services</Link>
-              {['Showroom', 'Culture', 'Projects', 'Live Screen Printing'].map((item) => (
-                <a key={item} href="#" className="font-impact text-5xl uppercase tracking-tighter transition-all hover:text-stroke md:text-7xl" onClick={() => setIsMenuOpen(false)}>
+            <nav aria-label="Mobile" className="flex flex-col gap-5 sm:gap-7">
+              <Link to="/services" className="font-impact text-4xl uppercase tracking-tighter transition-all hover:text-stroke sm:text-5xl md:text-6xl" onClick={() => setIsMenuOpen(false)}>Services</Link>
+              <Link to="/stickers" className="font-impact text-4xl uppercase tracking-tighter transition-all hover:text-stroke sm:text-5xl md:text-6xl" onClick={() => setIsMenuOpen(false)}>Stickers</Link>
+              {['Showroom', 'Culture', 'Projects'].map((item) => (
+                <a key={item} href="#" className="font-impact text-4xl uppercase tracking-tighter transition-all hover:text-stroke sm:text-5xl md:text-6xl" onClick={() => setIsMenuOpen(false)}>
                   {item}
                 </a>
               ))}
-              <Link to="/quote" className="mt-4 w-full rounded-full bg-lab-red py-6 text-center font-sans text-xs font-bold uppercase tracking-widest text-white shadow-lg transition-all duration-300 hover:bg-lab-black" onClick={() => setIsMenuOpen(false)}>
+              <Link to="/quote" className="mt-3 w-full rounded-full bg-lab-red py-4 text-center font-sans text-xs font-bold uppercase tracking-widest text-white shadow-lg transition-all duration-300 hover:bg-lab-black" onClick={() => setIsMenuOpen(false)}>
                 Begin Your Build
               </Link>
             </nav>
 
-            <div className="mt-auto flex items-end justify-between border-t border-lab-line pt-10">
+            <div className="mt-12 flex items-end justify-between border-t border-lab-line pt-8 sm:mt-auto">
               <div className="font-sans text-[10px] uppercase tracking-widest text-lab-black/40">
                 Santa Ana / CA<br />Quality Apparel Printing
               </div>

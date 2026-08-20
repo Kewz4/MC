@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import {
   ArrowRight,
@@ -30,7 +30,7 @@ const ProjectCard = ({ src, title, category, delay = 0 }: { src: string; title: 
     </div>
     <div className="flex justify-between items-start">
       <div>
-        <h4 className="font-display font-bold uppercase text-xl tracking-tight mb-1">{title}</h4>
+        <h4 className="font-accent text-xl font-semibold leading-tight tracking-[-0.01em] mb-1">{title}</h4>
         <p className="font-sans font-bold text-[14px] uppercase tracking-widest text-lab-black/40">{category}</p>
       </div>
       <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition-all duration-300" />
@@ -67,7 +67,7 @@ const HexagonStep = ({ step, title, text, color, delay = 0 }: { step: string; ti
         </svg>
         <div className={`relative z-10 text-center p-10 flex flex-col items-center justify-center transition-colors duration-500 ${isDark ? 'text-white' : 'text-lab-black'}`}>
           <span className="font-impact text-2xl uppercase tracking-tighter mb-2">{step}</span>
-          <h4 className="font-display font-bold text-[11px] uppercase tracking-[0.2em] mb-4 leading-tight">{title}</h4>
+          <h4 className="font-accent text-[11px] font-bold uppercase tracking-[0.14em] mb-4 leading-tight">{title}</h4>
           <div className="max-w-[180px]">
             <motion.p
               animate={{ opacity: isExpanded ? 1 : 0, height: isExpanded ? 'auto' : 0 }}
@@ -85,248 +85,287 @@ const HexagonStep = ({ step, title, text, color, delay = 0 }: { step: string; ti
   );
 };
 
-const MagnifyingGlass = ({ src, mousePos, isVisible, hotspots }: {
-  src: string;
-  mousePos: { x: number, y: number, x_percent: number, y_percent: number, width: number, height: number };
-  isVisible: boolean;
-  hotspots: any[];
-}) => {
-  const zoom = 3.5;
-  const size = 240;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{
-        opacity: isVisible ? 1 : 0,
-        scale: isVisible ? 1 : 0,
-        x: mousePos.x - size / 2,
-        y: mousePos.y - size / 2
-      }}
-      transition={{ type: "spring", damping: 25, stiffness: 300, opacity: { duration: 0.2 } }}
-      className="absolute pointer-events-none z-50 border-2 border-white/30 rounded-full overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.6)] backdrop-blur-[2px]"
-      style={{
-        width: size,
-        height: size,
-        left: 0,
-        top: 0
-      }}
-    >
-      <div
-        className="absolute inset-0 bg-no-repeat"
-        style={{
-          backgroundImage: `url(${src})`,
-          backgroundSize: `${mousePos.width * zoom}px ${mousePos.height * zoom}px`,
-          backgroundPosition: `${-mousePos.x * zoom + size / 2}px ${-mousePos.y * zoom + size / 2}px`,
-        }}
-      />
-
-      {/* Magnified Hotspots */}
-      <div className="absolute inset-0 pointer-events-none">
-        {hotspots.map((spot) => {
-          const spotX = (spot.x / 100) * mousePos.width;
-          const spotY = (spot.y / 100) * mousePos.height;
-          const magX = (spotX - mousePos.x) * zoom + size / 2;
-          const magY = (spotY - mousePos.y) * zoom + size / 2;
-
-          // Only render if within the lens bounds (with some padding)
-          if (magX < -20 || magX > size + 20 || magY < -20 || magY > size + 20) return null;
-
-          return (
-            <div
-              key={`mag-${spot.id}`}
-              className="absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2"
-              style={{ left: magX, top: magY }}
-            >
-              <div className="w-full h-full bg-lab-red rounded-full opacity-40 animate-pulse" />
-              <div className="absolute inset-0 border border-white rounded-full animate-ping opacity-20" />
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Lens Flare/Reflection Effect */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-white/5 pointer-events-none" />
-
-      {/* Technical HUD inside glass */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="w-full h-px bg-lab-red/20 absolute top-1/2" />
-        <div className="h-full w-px bg-lab-red/20 absolute left-1/2" />
-        <div className="w-12 h-12 border border-lab-red/40 rounded-full flex items-center justify-center">
-          <div className="w-1 h-1 bg-lab-red rounded-full animate-ping" />
-        </div>
-
-        {/* Dynamic Coordinates */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/60 px-2 py-0.5 rounded backdrop-blur-md">
-          <span className="font-mono font-bold text-[10px] text-white tracking-widest uppercase">
-            X:{Math.round(mousePos.x_percent)} Y:{Math.round(mousePos.y_percent)} // ZOOM_3.5X
-          </span>
-        </div>
-      </div>
-    </motion.div>
-  );
+type LabHotspot = {
+  id: number;
+  x: number;
+  y: number;
+  title: string;
+  description: string;
 };
 
+type LabGeometry = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  size: number;
+  zoom: number;
+};
+
+const LAB_HOTSPOTS: LabHotspot[] = [
+  {
+    id: 1,
+    x: 25,
+    y: 35,
+    title: "Curated Archive",
+    description: "Garment references, print tests, and past builds help the team align on the right visual direction."
+  },
+  {
+    id: 2,
+    x: 45,
+    y: 75,
+    title: "Production Table",
+    description: "A working surface for reviewing placement, finish, and the details that matter before delivery."
+  },
+  {
+    id: 3,
+    x: 52,
+    y: 65,
+    title: "Thread and Trim",
+    description: "Embroidery, labels, and finishing details are considered together so each garment feels intentional."
+  },
+  {
+    id: 4,
+    x: 65,
+    y: 45,
+    title: "Stock and Staging",
+    description: "Blanks and finished goods stay organized as projects move from production into packing and fulfillment."
+  },
+  {
+    id: 5,
+    x: 85,
+    y: 35,
+    title: "Showroom Wall",
+    description: "A shared visual space for client conversations, product references, and new collection ideas."
+  }
+];
+
 const InteractiveLab = () => {
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0, x_percent: 0, y_percent: 0, width: 0, height: 0 });
-  const [isHovering, setIsHovering] = useState(false);
   const [activeHotspot, setActiveHotspot] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lensRef = useRef<HTMLDivElement>(null);
+  const lensImageRef = useRef<HTMLImageElement>(null);
+  const geometryRef = useRef<LabGeometry>({ left: 0, top: 0, width: 0, height: 0, size: 220, zoom: 2.25 });
+  const latestPointRef = useRef<{ x: number; y: number } | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const supportsHoverRef = useRef(false);
+  const activeHotspotRef = useRef<number | null>(null);
 
-  const hotspots = [
-    {
-      id: 1,
-      x: 25,
-      y: 35,
-      title: "Curated Archive",
-      description: "A collection of our most technical builds, showcasing various printing and washing techniques from the past decade.",
-      label: "Specimen_Wall"
-    },
-    {
-      id: 2,
-      x: 45,
-      y: 75,
-      title: "Production Table",
-      description: "Where every garment is hand-inspected for quality and precision before leaving the lab. Our standards are non-negotiable.",
-      label: "Quality_Control"
-    },
-    {
-      id: 3,
-      x: 52,
-      y: 65,
-      title: "Industrial Thread",
-      description: "We use high-tenacity polyester threads that provide superior strength and color fastness for all embroidery applications.",
-      label: "Thread_Spec"
-    },
-    {
-      id: 4,
-      x: 65,
-      y: 45,
-      title: "Inventory Racks",
-      description: "Our facility maintains a deep stock of premium heavyweight blanks, ready for immediate custom engineering.",
-      label: "Stock_Archive"
-    },
-    {
-      id: 5,
-      x: 85,
-      y: 35,
-      title: "Facility No. 42",
-      description: "Our headquarters in Santa Ana, CA. A purpose-built space designed for apparel engineering and brand development.",
-      label: "Lab_HQ"
+  const activeSpot = LAB_HOTSPOTS.find((spot) => spot.id === activeHotspot) ?? null;
+
+  const setLensVisible = useCallback((isVisible: boolean) => {
+    if (lensRef.current) lensRef.current.style.opacity = isVisible ? '1' : '0';
+  }, []);
+
+  const measureLab = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return null;
+    const rect = container.getBoundingClientRect();
+    const geometry: LabGeometry = {
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+      size: Math.min(240, Math.max(170, rect.width * 0.18)),
+      zoom: rect.width < 720 ? 2 : 2.25
+    };
+    geometryRef.current = geometry;
+
+    if (lensRef.current) {
+      lensRef.current.style.width = `${geometry.size}px`;
+      lensRef.current.style.height = `${geometry.size}px`;
     }
-  ];
+    if (lensImageRef.current) {
+      lensImageRef.current.style.width = `${geometry.width}px`;
+      lensImageRef.current.style.height = `${geometry.height}px`;
+    }
+    return geometry;
+  }, []);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const x_percent = (x / rect.width) * 100;
-    const y_percent = (y / rect.height) * 100;
-    setMousePos({ x, y, x_percent, y_percent, width: rect.width, height: rect.height });
+  const drawLens = useCallback((x: number, y: number) => {
+    const lens = lensRef.current;
+    const image = lensImageRef.current;
+    const geometry = geometryRef.current;
+    if (!lens || !image || !geometry.width || !geometry.height) return;
+
+    const inset = geometry.size / 2 + 12;
+    const lensX = Math.max(inset, Math.min(geometry.width - inset, x));
+    const lensY = Math.max(inset, Math.min(geometry.height - inset, y));
+    lens.style.transform = `translate3d(${lensX - geometry.size / 2}px, ${lensY - geometry.size / 2}px, 0)`;
+    image.style.transform = `translate3d(${geometry.size / 2 - x * geometry.zoom}px, ${geometry.size / 2 - y * geometry.zoom}px, 0) scale(${geometry.zoom})`;
+  }, []);
+
+  const queueLensDraw = useCallback((x: number, y: number) => {
+    latestPointRef.current = { x, y };
+    if (frameRef.current !== null) return;
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = null;
+      const point = latestPointRef.current;
+      if (point) drawLens(point.x, point.y);
+    });
+  }, [drawLens]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const syncHoverSupport = () => {
+      supportsHoverRef.current = mediaQuery.matches;
+      if (!mediaQuery.matches && activeHotspotRef.current === null) setLensVisible(false);
+    };
+    syncHoverSupport();
+    mediaQuery.addEventListener('change', syncHoverSupport);
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(() => {
+          const geometry = measureLab();
+          const spot = LAB_HOTSPOTS.find((item) => item.id === activeHotspotRef.current);
+          if (geometry && spot) drawLens((spot.x / 100) * geometry.width, (spot.y / 100) * geometry.height);
+        });
+    if (containerRef.current) resizeObserver?.observe(containerRef.current);
+    measureLab();
+
+    return () => {
+      mediaQuery.removeEventListener('change', syncHoverSupport);
+      resizeObserver?.disconnect();
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    };
+  }, [drawLens, measureLab, setLensVisible]);
+
+  const focusHotspot = (spot: LabHotspot) => {
+    const geometry = measureLab();
+    if (!geometry) return;
+    drawLens((spot.x / 100) * geometry.width, (spot.y / 100) * geometry.height);
+    if (supportsHoverRef.current) setLensVisible(true);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!supportsHoverRef.current || activeHotspotRef.current !== null) return;
+    const geometry = geometryRef.current;
+    queueLensDraw(event.clientX - geometry.left, event.clientY - geometry.top);
   };
 
   return (
-    <div className="relative w-full aspect-video bg-lab-black group cursor-none"
-         ref={containerRef}
-         onMouseMove={handleMouseMove}
-         onMouseEnter={() => setIsHovering(true)}
-         onMouseLeave={() => {
-           setIsHovering(false);
-           setActiveHotspot(null);
-         }}>
+    <div
+      className="group relative aspect-[16/10] w-full touch-pan-y overflow-hidden bg-lab-black md:cursor-crosshair lg:aspect-video"
+      ref={containerRef}
+      onPointerMove={handlePointerMove}
+      onPointerEnter={(event) => {
+        if (event.pointerType !== 'mouse' || !supportsHoverRef.current) return;
+        const geometry = measureLab();
+        if (!geometry || activeHotspotRef.current !== null) return;
+        queueLensDraw(event.clientX - geometry.left, event.clientY - geometry.top);
+        setLensVisible(true);
+      }}
+      onPointerLeave={() => {
+        if (activeHotspotRef.current === null) setLensVisible(false);
+      }}
+    >
 
-      {/* Main Image */}
       <img
         src="/assets/images/lab-showroom.jpg"
         alt="Merchcraft Apparel Lab Showroom"
-        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-1000"
+        className="h-full w-full object-cover opacity-90 transition duration-700 group-hover:opacity-100"
         referrerPolicy="no-referrer"
+        onClick={() => {
+          activeHotspotRef.current = null;
+          setActiveHotspot(null);
+          if (!supportsHoverRef.current) setLensVisible(false);
+        }}
       />
 
-      {/* Hotspots */}
-      {hotspots.map((spot) => (
+      {LAB_HOTSPOTS.map((spot) => (
         <div
           key={spot.id}
           className="absolute z-30"
           style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
         >
           <button
-            onClick={() => setActiveHotspot(activeHotspot === spot.id ? null : spot.id)}
-            className="relative group/spot"
+            type="button"
+            aria-label={`Explore ${spot.title}`}
+            aria-expanded={activeHotspot === spot.id}
+            aria-controls="lab-hotspot-detail"
+            onClick={() => {
+              const nextHotspot = activeHotspot === spot.id ? null : spot.id;
+              activeHotspotRef.current = nextHotspot;
+              setActiveHotspot(nextHotspot);
+              if (nextHotspot === null) {
+                if (!supportsHoverRef.current) setLensVisible(false);
+              } else {
+                focusHotspot(spot);
+              }
+            }}
+            onFocus={() => focusHotspot(spot)}
+            onPointerEnter={() => focusHotspot(spot)}
+            className="group/spot relative flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full focus-visible:outline-offset-2"
           >
-            <div className="w-4 h-4 bg-lab-red rounded-full animate-pulse shadow-[0_0_20px_rgba(163,42,41,0.8)]" />
-            <div className="absolute inset-0 w-4 h-4 border border-white rounded-full animate-ping opacity-40" />
+            <span className={`absolute h-9 w-9 rounded-full border transition ${activeHotspot === spot.id ? 'scale-100 border-white/80 bg-white/10' : 'scale-75 border-white/30 group-hover/spot:scale-100'}`} />
+            <span className="relative h-3.5 w-3.5 rounded-full bg-lab-red shadow-[0_0_22px_rgba(204,17,44,0.7)]" />
 
-            {/* Label */}
-            <div className="absolute top-1/2 left-6 -translate-y-1/2 whitespace-nowrap opacity-0 group-hover/spot:opacity-100 transition-opacity pointer-events-none">
-              <span className="bg-black/80 backdrop-blur-md text-white font-mono text-[8px] uppercase tracking-widest px-2 py-1 border border-white/10">
-                {spot.label}
-              </span>
-            </div>
+            <span className={`pointer-events-none absolute left-11 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-lab-black/90 px-3 py-1.5 font-accent text-[11px] font-semibold text-white shadow-lg transition ${activeHotspot === spot.id ? 'opacity-100' : 'opacity-0 group-hover/spot:opacity-100 group-focus-visible/spot:opacity-100'}`}>
+              {spot.title}
+            </span>
           </button>
-
-          {/* Info Card */}
-          <AnimatePresence>
-            {activeHotspot === spot.id && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                className={`absolute top-8 w-64 bg-white p-6 shadow-2xl z-50 border border-lab-line ${spot.x > 75 ? 'right-0' : 'left-0'}`}
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-px bg-lab-red" />
-                  <span className="font-mono text-[9px] text-lab-red uppercase tracking-widest">Analysis_Active</span>
-                </div>
-                <h4 className="font-display font-bold uppercase text-lg mb-3 tracking-tight">{spot.title}</h4>
-                <p className="text-lab-black/60 text-[14px] leading-relaxed font-bold mb-4">
-                  {spot.description}
-                </p>
-                <div className="pt-4 border-t border-lab-line flex justify-between items-center">
-                  <span className="font-mono text-[8px] text-lab-black/30 uppercase tracking-widest">Ref_ID: {spot.id}00X</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveHotspot(null);
-                    }}
-                    className="font-mono text-[9px] text-lab-red uppercase tracking-widest hover:underline"
-                  >
-                    [ Close ]
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       ))}
 
-      {/* Magnifying Glass Lens */}
-      <MagnifyingGlass
-        src="/assets/images/lab-showroom.jpg"
-        mousePos={mousePos}
-        isVisible={isHovering && activeHotspot === null}
-        hotspots={hotspots}
-      />
-
-      {/* Technical HUD Overlays */}
-      <div className="absolute top-10 left-10 pointer-events-none z-20">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 bg-lab-red rounded-full animate-pulse" />
-            <span className="font-mono font-bold text-[12px] text-white uppercase tracking-[0.3em]">Live_Feed: Facility_42</span>
-          </div>
-          <div className="font-mono font-bold text-[11px] text-white/40 uppercase tracking-widest">Resolution: 4K_RAW // ISO: 400</div>
+      <div
+        ref={lensRef}
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 top-0 z-40 hidden overflow-hidden rounded-full border-2 border-white/35 opacity-0 shadow-[0_16px_48px_rgba(0,0,0,0.45)] transition-opacity duration-100 will-change-[transform,opacity] motion-reduce:transition-none md:block"
+        style={{ width: 220, height: 220, contain: 'layout paint style' }}
+      >
+        <img
+          ref={lensImageRef}
+          src="/assets/images/lab-showroom.jpg"
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          className="absolute left-0 top-0 max-w-none origin-top-left select-none object-cover will-change-transform"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-white/5" />
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="h-10 w-10 rounded-full border border-lab-red/60 bg-lab-red/10" />
+          <div className="absolute h-px w-16 bg-lab-red/35" />
+          <div className="absolute h-16 w-px bg-lab-red/35" />
         </div>
       </div>
 
-      <div className="absolute bottom-10 right-10 pointer-events-none z-20 text-right">
-        <div className="font-mono font-bold text-[12px] text-white uppercase tracking-[0.3em] mb-2">Interactive_Mode: Active</div>
-        <div className="font-mono font-bold text-[11px] text-white/40 uppercase tracking-widest">Click_Hotspots_For_Data</div>
+      <div className="pointer-events-none absolute left-1/2 top-4 z-20 -translate-x-1/2 rounded-full border border-white/15 bg-lab-black/65 px-4 py-2 font-accent text-[11px] font-semibold text-white shadow-lg backdrop-blur-md">
+        <span className="hidden md:inline">Move to inspect · select a marker</span>
+        <span className="md:hidden">Tap a marker to explore</span>
       </div>
 
-      {/* Vignette */}
-      <div className="absolute inset-0 shadow-[inset_0_0_150px_rgba(0,0,0,0.8)] pointer-events-none" />
+      <AnimatePresence>
+        {activeSpot && (
+          <motion.aside
+            id="lab-hotspot-detail"
+            key={activeSpot.id}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 14 }}
+            transition={{ duration: 0.24 }}
+            className="absolute bottom-4 left-4 right-4 z-50 border border-lab-line bg-white p-5 shadow-2xl sm:right-auto sm:w-[min(24rem,calc(100%-2rem))] md:bottom-6 md:left-6 md:p-6"
+          >
+            <div className="mb-3 flex items-center justify-between gap-4">
+              <span className="font-accent text-[11px] font-bold uppercase tracking-[0.14em] text-lab-red">Selected area {String(activeSpot.id).padStart(2, '0')}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  activeHotspotRef.current = null;
+                  setActiveHotspot(null);
+                  if (!supportsHoverRef.current) setLensVisible(false);
+                }}
+                className="min-h-11 rounded-full px-3 font-sans text-xs font-bold uppercase tracking-widest text-lab-black/60 transition hover:text-lab-red"
+              >
+                Close
+              </button>
+            </div>
+            <h4 className="font-accent text-xl font-semibold leading-tight text-lab-black">{activeSpot.title}</h4>
+            <p className="mt-3 text-sm font-medium leading-relaxed text-lab-black/65 sm:text-base">{activeSpot.description}</p>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_90px_rgba(0,0,0,0.65)]" />
     </div>
   );
 };
@@ -604,7 +643,7 @@ const InkTankSection = () => {
         <div className="text-white">
           <motion.h2
             style={{ opacity }}
-            className="font-display text-6xl md:text-8xl font-bold uppercase tracking-tighter leading-[0.85] mb-10"
+            className="font-impact text-6xl font-normal uppercase tracking-[0.01em] leading-[0.94] mb-10 md:text-7xl"
           >
             Engineered<br />For The <span className="text-lab-gold">Print.</span>
           </motion.h2>
@@ -619,7 +658,7 @@ const InkTankSection = () => {
                 <Zap className="w-5 h-5 text-lab-gold" />
               </div>
               <div>
-                <h4 className="font-display font-bold uppercase text-lg tracking-tight mb-2">High-Durability Inks</h4>
+                <h4 className="font-accent text-xl font-semibold leading-tight tracking-[-0.01em] mb-2">High-Durability Inks</h4>
                 <p className="text-white/40 text-lg font-bold leading-relaxed">Engineered to withstand heat, moisture, and the rigors of production.</p>
               </div>
             </div>
@@ -629,7 +668,7 @@ const InkTankSection = () => {
                 <Shirt className="w-5 h-5 text-lab-gold" />
               </div>
               <div>
-                <h4 className="font-display font-bold uppercase text-lg tracking-tight mb-2">Custom Embroidery</h4>
+                <h4 className="font-accent text-xl font-semibold leading-tight tracking-[-0.01em] mb-2">Custom Embroidery</h4>
                 <p className="text-white/40 text-lg font-bold leading-relaxed">Tactile, high-thread count details for premium headwear and outerwear.</p>
               </div>
             </div>
@@ -700,10 +739,10 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="text-[8vw] md:text-[6vw] leading-[0.9] tracking-tighter mb-8"
+              className="text-[8vw] md:text-[6vw] leading-[0.92] tracking-[0.01em] mb-8"
             >
-              <span className="font-display font-bold uppercase text-white block">Your Merch,</span>
-              <span className="font-display text-white block opacity-90">Our Craft.</span>
+              <span className="font-impact font-normal uppercase text-white block">Your Merch,</span>
+              <span className="font-impact font-normal uppercase text-white block opacity-90">Our Craft.</span>
             </motion.h1>
 
             <motion.p
@@ -736,7 +775,7 @@ export default function HomePage() {
           >
             {[...Array(10)].map((_, i) => (
               <div key={i} className="flex items-center gap-8">
-                <span className="font-sans text-[12px] font-bold uppercase tracking-[0.2em]">Sign up for 10% off your first order</span>
+                <span className="font-sans text-[12px] font-bold uppercase tracking-[0.2em]">Screen Printing • Embroidery • Finishing</span>
                 <div className="flex gap-1">
                   <div className="w-1 h-1 bg-black rotate-45" />
                   <div className="w-1 h-1 bg-black rotate-45" />
@@ -750,8 +789,8 @@ export default function HomePage() {
       {/* Hexagon Steps - Interactive Process */}
       <section className="py-24 px-8 bg-lab-white relative overflow-hidden">
         <div className="max-w-7xl mx-auto text-center mb-16">
-          <span className="font-sans text-[12px] font-bold text-lab-red uppercase tracking-[0.4em] mb-6 block">The Build Process</span>
-          <h2 className="font-display text-5xl md:text-7xl font-bold uppercase tracking-tighter leading-none mb-8">Custom Crafted<br />Made Simple.</h2>
+          <span className="font-accent text-[12px] font-bold text-lab-red uppercase tracking-[0.14em] mb-6 block">The Build Process</span>
+          <h2 className="font-impact text-5xl font-normal uppercase tracking-[0.01em] leading-[0.95] mb-8 md:text-7xl">Custom Crafted<br />Made Simple.</h2>
           <div className="w-24 h-px bg-lab-red/20 mx-auto" />
         </div>
 
@@ -811,11 +850,11 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto mb-16 relative z-20">
           <div className="flex flex-col md:flex-row justify-between items-end gap-10">
             <div className="max-w-xl">
-              <span className="font-sans text-[12px] font-bold text-lab-red uppercase tracking-[0.4em] mb-6 block">The Showroom</span>
-              <h2 className="font-display text-6xl md:text-8xl font-bold uppercase tracking-tighter leading-[0.85]">Lab<br />Showroom.</h2>
+              <span className="font-accent text-[12px] font-bold text-lab-red uppercase tracking-[0.14em] mb-6 block">The Showroom</span>
+              <h2 className="font-impact text-6xl font-normal uppercase tracking-[0.01em] leading-[0.95] md:text-7xl">Lab<br />Showroom.</h2>
             </div>
             <p className="font-sans text-base font-bold text-lab-black/50 max-w-xs leading-relaxed">
-              Step into the lab. Explore materials and techniques in a 3D environment. Click to zoom into the details.
+              Explore materials and production details. Move across the image or select a marker to take a closer look.
             </p>
           </div>
         </div>
@@ -873,7 +912,7 @@ export default function HomePage() {
                 className="group"
               >
                 <div className="w-12 h-1 bg-lab-red mb-8 group-hover:w-full transition-all duration-500" />
-                <h4 className="font-display font-bold uppercase text-xl mb-6 tracking-tight">{item.title}</h4>
+                <h4 className="font-accent text-xl font-semibold leading-tight tracking-[-0.01em] mb-6">{item.title}</h4>
                 <p className="text-lab-black/50 text-base leading-relaxed font-bold">
                   {item.text}
                 </p>
@@ -888,8 +927,8 @@ export default function HomePage() {
       <section className="py-24 bg-white border-y border-lab-line px-8">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-20">
           <div className="lg:w-1/2">
-            <span className="font-sans text-[12px] font-bold text-lab-red uppercase tracking-[0.4em] mb-6 block">Color_Spec</span>
-            <h2 className="font-display text-6xl md:text-8xl font-bold uppercase tracking-tighter leading-none mb-10">The Color<br />Library.</h2>
+            <span className="font-accent text-[12px] font-bold text-lab-red uppercase tracking-[0.14em] mb-6 block">Color library</span>
+            <h2 className="font-impact text-6xl font-normal uppercase tracking-[0.01em] leading-[0.95] mb-10 md:text-7xl">The Color<br />Library.</h2>
             <p className="font-sans text-base font-bold text-lab-black/50 max-w-md leading-relaxed">
               Our curated palette of premium inks and fabric dyes. Select a swatch to view technical specifications and availability.
             </p>
@@ -905,8 +944,8 @@ export default function HomePage() {
       <section className="py-24 px-8">
         <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-10">
           <div className="max-w-xl">
-            <span className="font-sans text-[12px] font-bold text-lab-red uppercase tracking-[0.4em] mb-6 block">Portfolio</span>
-            <h2 className="font-display text-6xl md:text-8xl font-bold uppercase tracking-tighter leading-[0.85]">Recent<br />Work.</h2>
+            <span className="font-accent text-[12px] font-bold text-lab-red uppercase tracking-[0.14em] mb-6 block">Portfolio</span>
+            <h2 className="font-impact text-6xl font-normal uppercase tracking-[0.01em] leading-[0.95] md:text-7xl">Recent<br />Work.</h2>
           </div>
           <p className="font-sans text-base font-bold text-lab-black/50 max-w-xs leading-relaxed">
             A selection of custom apparel we've produced for brands, events, and movements.
@@ -953,7 +992,7 @@ export default function HomePage() {
                 className="h-full w-auto"
               />
             </div>
-            <h2 className="font-display text-5xl md:text-6xl font-bold uppercase tracking-tighter mb-10 leading-tight">
+            <h2 className="font-impact text-5xl font-normal uppercase tracking-[0.01em] mb-10 leading-[0.98] md:text-6xl">
               Ready to start<br />your next order?
             </h2>
             <Link to="/quote" className="inline-flex bg-lab-black text-white px-12 py-6 rounded-full font-sans font-bold uppercase tracking-widest text-[12px] hover:opacity-80 transition-opacity">
@@ -966,6 +1005,7 @@ export default function HomePage() {
             <ul className="space-y-4 font-sans text-sm uppercase tracking-widest font-bold">
               <li><Link to="/about" className="hover:opacity-50 transition-opacity">About</Link></li>
               <li><Link to="/services" className="hover:opacity-50 transition-opacity">Services</Link></li>
+              <li><Link to="/stickers" className="hover:opacity-50 transition-opacity">Stickers</Link></li>
               <li><a href="#" className="hover:opacity-50 transition-opacity">Fabrics</a></li>
               <li><a href="#" className="hover:opacity-50 transition-opacity">Careers</a></li>
             </ul>

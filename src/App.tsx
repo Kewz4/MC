@@ -8,6 +8,7 @@ const ServicesPage = lazy(() => import('./pages/ServicesPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const ContactPage = lazy(() => import('./pages/ContactPage'));
 const QuotePage = lazy(() => import('./pages/QuotePage'));
+const StickersPage = lazy(() => import('./pages/StickersPage'));
 
 const metadata: Record<string, { title: string; description: string }> = {
   '/': {
@@ -29,6 +30,10 @@ const metadata: Record<string, { title: string; description: string }> = {
   '/quote': {
     title: 'Request a Quote | Merchcraft',
     description: 'Share your project details to request a custom apparel quote from Merchcraft.',
+  },
+  '/stickers': {
+    title: 'Custom Stickers | Merchcraft',
+    description: 'Explore custom sticker formats and surface directions, then request an official sticker quote from Merchcraft.',
   },
 };
 
@@ -74,6 +79,7 @@ function PageRoutes() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/quote" element={<QuotePage />} />
+          <Route path="/stickers" element={<StickersPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
