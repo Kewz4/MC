@@ -1,4 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import type { Application, SPEObject } from '@splinetool/runtime';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -6,6 +7,43 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 gsap.registerPlugin(ScrollTrigger);
 
 const Spline = lazy(() => import('@splinetool/react-spline'));
+
+type SplineSceneErrorBoundaryProps = {
+  children: ReactNode;
+  onError: () => void;
+};
+
+type SplineSceneErrorBoundaryState = {
+  failed: boolean;
+};
+
+class SplineSceneErrorBoundary extends Component<SplineSceneErrorBoundaryProps, SplineSceneErrorBoundaryState> {
+  declare readonly props: SplineSceneErrorBoundaryProps;
+  state: SplineSceneErrorBoundaryState = { failed: false };
+
+  static getDerivedStateFromError(): SplineSceneErrorBoundaryState {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('Sticker Spline scene failed to load.', error, info);
+    this.props.onError();
+  }
+
+  render() {
+    if (this.state.failed) {
+      return (
+        <img
+          src="/assets/images/stickers-hero-v2.webp"
+          alt="Custom Merchcraft sticker samples"
+          className="h-full w-full object-cover object-center opacity-55"
+        />
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 type SplineEventMap = ReturnType<Application['getSplineEvents']>;
 
@@ -208,6 +246,11 @@ export default function StickerSplineScene() {
     setupScroll(app);
   }, [setupScroll]);
 
+  const handleSceneError = useCallback(() => {
+    cleanupRef.current?.();
+    setIsLoaded(true);
+  }, []);
+
   useEffect(() => () => cleanupRef.current?.(), []);
 
   return (
@@ -219,15 +262,17 @@ export default function StickerSplineScene() {
               <span className="font-accent text-xs font-bold uppercase tracking-[0.16em] text-lab-black/55">Loading sticker scene…</span>
             </div>
           )}
-          <Suspense fallback={null}>
-            <Spline
-              scene="/assets/3d/stickers-scene-brand-v3.splinecode"
-              onLoad={handleLoad}
-              renderOnDemand
-              className="h-full w-full [&_canvas]:!bg-transparent"
-              style={{ background: 'transparent' }}
-            />
-          </Suspense>
+          <SplineSceneErrorBoundary onError={handleSceneError}>
+            <Suspense fallback={null}>
+              <Spline
+                scene="/assets/3d/stickers-scene-brand-v3.splinecode"
+                onLoad={handleLoad}
+                renderOnDemand
+                className="h-full w-full [&_canvas]:!bg-transparent"
+                style={{ background: 'transparent' }}
+              />
+            </Suspense>
+          </SplineSceneErrorBoundary>
         </div>
 
         <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(90deg,rgba(203,153,51,0.92)_0%,rgba(203,153,51,0.62)_28%,rgba(203,153,51,0)_62%)]" />

@@ -85,7 +85,9 @@ const importMap = {
     gsap: `https://esm.sh/gsap@${packageVersions.gsap}?target=es2022`,
     'gsap/ScrollTrigger': `https://esm.sh/gsap@${packageVersions.gsap}/ScrollTrigger?target=es2022`,
     '@splinetool/react-spline': `https://esm.sh/@splinetool/react-spline@${packageVersions.splineReact}?external=react,react-dom,@splinetool/runtime&target=es2022`,
-    '@splinetool/runtime': `https://esm.sh/@splinetool/runtime@${packageVersions.splineRuntime}?target=es2022`,
+    // Do not transpile the Spline runtime through esm.sh. Its renderer modules
+    // must remain byte-for-byte compatible with the package's relative chunks.
+    '@splinetool/runtime': `https://unpkg.com/@splinetool/runtime@${packageVersions.splineRuntime}/build/runtime.js`,
   },
 };
 
@@ -354,7 +356,7 @@ const manifest = {
     artworkFallback: 'Artwork share link field',
   },
   externalRuntime: {
-    provider: 'esm.sh',
+    provider: 'esm.sh + unpkg',
     pinnedVersions: packageVersions,
     importMap,
   },
@@ -373,6 +375,6 @@ console.log(JSON.stringify({
   cssBytes: statSync(cssOutput).size,
   templateBytes: statSync(templateOutput).size,
   publicAssets: [...usedPublicAssets].sort(),
-  dynamicSplineImportExternalized: true,
+  splineRuntimeExternalized: true,
   page: manifest.page,
 }, null, 2));
