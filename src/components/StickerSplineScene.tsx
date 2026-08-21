@@ -109,6 +109,9 @@ type StickerHit = {
 
 type ActiveStickerDrag = {
   pointerId: number;
+  startClientX: number;
+  startClientY: number;
+  started: boolean;
   track: StickerTrack;
   planePoint: RuntimePoint;
   planeNormal: RuntimePoint;
@@ -127,7 +130,9 @@ const INTRO_PLAYBACK_DURATION = 5_000;
 const TRACK_DURATION = 3_000;
 const DRAG_RETURN_DURATION = 440;
 const DESKTOP_SCENE_ZOOM = 2.25;
-const MOBILE_SCENE_ZOOM = 1.72;
+const MOBILE_SCENE_ZOOM = 1.84;
+const SHORT_LANDSCAPE_SCENE_ZOOM = 1.8;
+const TOUCH_DRAG_THRESHOLD = 12;
 const DEGREES_TO_RADIANS = Math.PI / 180;
 const SCROLL_BOUNDARY_EPSILON = 1;
 const WHEEL_SMOOTHING_TIME = 32;
@@ -446,8 +451,13 @@ export default function StickerSplineScene() {
       cancelWheelMotion();
       const rect = section.getBoundingClientRect();
       sectionTop = rect.top + window.scrollY;
-      scrollRange = Math.max(1, section.offsetHeight - window.innerHeight);
-      const nextZoom = window.innerWidth < 640 ? MOBILE_SCENE_ZOOM : DESKTOP_SCENE_ZOOM;
+      scrollRange = Math.max(1, section.offsetHeight - stage.offsetHeight);
+      const isShortLandscape = window.innerWidth > window.innerHeight && window.innerHeight <= 520;
+      const nextZoom = isShortLandscape
+        ? SHORT_LANDSCAPE_SCENE_ZOOM
+        : window.innerWidth < 640
+          ? MOBILE_SCENE_ZOOM
+          : DESKTOP_SCENE_ZOOM;
       if (nextZoom !== currentZoom) {
         currentZoom = nextZoom;
         app.setZoom(nextZoom);
@@ -600,6 +610,8 @@ export default function StickerSplineScene() {
 
     const handlePointerDown = (event: PointerEvent) => {
       if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      const stageRect = stage.getBoundingClientRect();
+      if (event.pointerType === 'touch' && event.clientY - stageRect.top < stageRect.height * 0.44) return;
       if (raycastContext) raycastContext.domRect = app.canvas.getBoundingClientRect();
       const hit = pickSticker(event);
       const ray = getCurrentRay();
@@ -616,21 +628,26 @@ export default function StickerSplineScene() {
       const startOffset = copyPoint(dragOffsets.get(hit.track.id) ?? { x: 0, y: 0, z: 0 });
       activeDrag = {
         pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        started: event.pointerType !== 'touch',
         track: hit.track,
         planePoint: hit.point,
         planeNormal,
         startIntersection,
         startOffset,
       };
-      stage.setPointerCapture(event.pointerId);
-      stage.dataset.sceneDragging = 'true';
-      stage.dataset.sceneDraggedSticker = hit.track.id;
-      event.preventDefault();
-      event.stopPropagation();
+      if (activeDrag.started) {
+        stage.setPointerCapture(event.pointerId);
+        stage.dataset.sceneDragging = 'true';
+        stage.dataset.sceneDraggedSticker = hit.track.id;
+        event.preventDefault();
+        event.stopPropagation();
+      }
     };
 
     const processPointerMove = (event: PointerEvent) => {
-      if (!activeDrag || event.pointerId !== activeDrag.pointerId) {
+      if (!activeDrag || event.pointerId !== activeDrag.pointerId || !activeDrag.started) {
         if (event.pointerType !== 'touch') {
           const hoveredSticker = pickSticker(event);
           stage.dataset.sceneHover = hoveredSticker ? 'true' : 'false';
@@ -664,8 +681,24 @@ export default function StickerSplineScene() {
     };
 
     const handlePointerMove = (event: PointerEvent) => {
+      if (activeDrag && event.pointerId === activeDrag.pointerId && !activeDrag.started) {
+        const deltaX = event.clientX - activeDrag.startClientX;
+        const deltaY = event.clientY - activeDrag.startClientY;
+        if (Math.hypot(deltaX, deltaY) < TOUCH_DRAG_THRESHOLD) return;
+
+        if (Math.abs(deltaY) >= Math.abs(deltaX)) {
+          activeDrag = undefined;
+          return;
+        }
+
+        activeDrag.started = true;
+        stage.setPointerCapture(event.pointerId);
+        stage.dataset.sceneDragging = 'true';
+        stage.dataset.sceneDraggedSticker = activeDrag.track.id;
+      }
+
       latestPointerMove = event;
-      if (activeDrag && event.pointerId === activeDrag.pointerId) {
+      if (activeDrag && activeDrag.started && event.pointerId === activeDrag.pointerId) {
         event.preventDefault();
         event.stopPropagation();
       }
@@ -711,6 +744,10 @@ export default function StickerSplineScene() {
 
     const finishPointerDrag = (event: PointerEvent) => {
       if (!activeDrag || event.pointerId !== activeDrag.pointerId) return;
+      if (!activeDrag.started) {
+        activeDrag = undefined;
+        return;
+      }
       flushPointerMove();
       const releasedTrack = activeDrag.track;
       const releasedOffset = dragOffsets.get(releasedTrack.id);
@@ -864,38 +901,38 @@ export default function StickerSplineScene() {
   }, []);
 
   return (
-    <section id="sticker-scene" ref={sectionRef} data-sticker-scene-section className="relative h-[300vh] bg-lab-gold text-lab-black motion-reduce:h-screen">
-      <div ref={stageRef} className="sticky top-0 h-screen cursor-default overflow-hidden bg-lab-gold data-[scene-dragging=true]:cursor-grabbing data-[scene-hover=true]:cursor-grab">
+    <section id="sticker-scene" ref={sectionRef} data-sticker-scene-section className="relative h-[320svh] bg-lab-gold text-lab-black sm:h-[300vh] motion-reduce:h-[100svh]">
+      <div ref={stageRef} className="sticker-scene-stage sticky top-0 h-[100svh] cursor-default overflow-hidden bg-lab-gold sm:h-screen data-[scene-dragging=true]:cursor-grabbing data-[scene-hover=true]:cursor-grab">
         <div className="absolute inset-0">
-          <div
-            className="absolute inset-0 origin-center translate-x-[18vw] scale-[1.18] will-change-transform sm:translate-x-[27vw] sm:scale-[1.36]"
-          >
           {!isLoaded && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-lab-gold" role="status">
               <span className="font-accent text-xs font-bold uppercase tracking-[0.16em] text-lab-black/55">Loading sticker scene…</span>
             </div>
           )}
-          <SplineSceneErrorBoundary onError={handleSceneError}>
-            <Suspense fallback={null}>
-              <Spline
-                scene="/assets/3d/stickers-scene-brand-v3.splinecode"
-                onLoad={handleLoad}
-                renderOnDemand
-                className="h-full w-full [&_canvas]:!bg-transparent"
-                style={{ background: 'transparent' }}
-              />
-            </Suspense>
-          </SplineSceneErrorBoundary>
+          <div
+            className="sticker-scene-art absolute inset-0 origin-center translate-x-0 translate-y-[7svh] scale-[1.16] will-change-transform sm:translate-x-[27vw] sm:translate-y-0 sm:scale-[1.36]"
+          >
+            <SplineSceneErrorBoundary onError={handleSceneError}>
+              <Suspense fallback={null}>
+                <Spline
+                  scene="/assets/3d/stickers-scene-brand-v3.splinecode"
+                  onLoad={handleLoad}
+                  renderOnDemand
+                  className="h-full w-full [&_canvas]:!bg-transparent"
+                  style={{ background: 'transparent' }}
+                />
+              </Suspense>
+            </SplineSceneErrorBoundary>
           </div>
         </div>
 
-        <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(203,153,51,0.98)_0%,rgba(203,153,51,0.9)_52%,rgba(203,153,51,0.22)_78%,rgba(203,153,51,0)_100%)] sm:bg-[linear-gradient(90deg,rgba(203,153,51,0.96)_0%,rgba(203,153,51,0.82)_38%,rgba(203,153,51,0.18)_58%,rgba(203,153,51,0)_72%)]" />
+        <div className="sticker-scene-scrim pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(203,153,51,0.99)_0%,rgba(203,153,51,0.97)_38%,rgba(203,153,51,0.72)_47%,rgba(203,153,51,0.14)_62%,rgba(203,153,51,0)_72%)] sm:bg-[linear-gradient(90deg,rgba(203,153,51,0.96)_0%,rgba(203,153,51,0.82)_38%,rgba(203,153,51,0.18)_58%,rgba(203,153,51,0)_72%)]" />
 
-        <div className="pointer-events-none absolute inset-0 z-20 mx-auto flex h-full max-w-7xl items-start px-5 pb-8 pt-[clamp(5rem,15vh,8rem)] sm:px-8 lg:px-10">
+        <div className="sticker-scene-copy pointer-events-none absolute inset-0 z-20 mx-auto flex h-full max-w-7xl items-start px-5 pb-8 pt-[clamp(4.75rem,12svh,6.5rem)] sm:px-8 sm:pt-[clamp(5rem,15vh,8rem)] lg:px-10">
           <div className="w-full max-w-[44rem]">
             <p className="font-accent text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-lab-red sm:text-xs lg:text-sm">Custom stickers</p>
             <h2
-              className="mt-3 font-bold uppercase text-[clamp(4.25rem,min(8.25vw,16vh),10rem)]"
+              className="mt-3 font-bold uppercase text-[clamp(4.1rem,17vw,4.75rem)] sm:text-[clamp(4.25rem,min(8.25vw,16vh),10rem)]"
               style={{ fontFamily: 'var(--font-display)', lineHeight: 0.84, letterSpacing: '-0.045em' }}
             >
               <span className="block whitespace-nowrap">Make it</span>

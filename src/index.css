@@ -208,6 +208,38 @@ h4.font-display {
   transform: scaleX(1);
 }
 
+@media (orientation: landscape) and (max-height: 520px) {
+  [data-sticker-scene-section] {
+    height: 300svh;
+  }
+
+  .sticker-scene-stage {
+    height: 100svh;
+  }
+
+  .sticker-scene-art {
+    transform: translate3d(22vw, 0, 0) scale(1.24) !important;
+  }
+
+  .sticker-scene-copy {
+    padding-top: 3.5rem !important;
+  }
+
+  .sticker-scene-copy > div {
+    max-width: 27rem;
+  }
+
+  .sticker-scene-copy h2 {
+    font-size: clamp(3.5rem, 8.5vw, 4.5rem) !important;
+  }
+
+  .sticker-scene-copy > div > div p {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    max-width: 32ch;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
