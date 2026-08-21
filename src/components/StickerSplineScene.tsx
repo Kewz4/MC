@@ -1,6 +1,6 @@
 import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
-import type { Application, SPEObject } from '@splinetool/runtime';
+import type { Application, Easing, SPEObject, TransitionFactory } from '@splinetool/runtime';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -64,8 +64,49 @@ function getSplineEventsSafely(app: Application): SplineEventMap {
 
 const READY_POLL_INTERVAL = 180;
 const READY_POLL_LIMIT = 50;
-const INTRO_REPLAY_ARM_DELAY = 900;
-const DIRECTION_DEADBAND = 64;
+// The longest authored Start path is 5s (1s delay + 1s hold + 3s transition).
+const INTRO_PLAYBACK_DURATION = 5_000;
+const PLAYBACK_IDLE_DELAY = 160;
+const SCENE_ZOOM = 1.36;
+const SPLINE_EASE_IN_OUT = 4 as Easing;
+const SCROLL_KEYS = new Set(['ArrowDown', 'ArrowUp', 'End', 'Home', 'PageDown', 'PageUp', ' ']);
+const STICKER_TRANSITION_DELAYS = new Map<string, number>([
+  ['d9120f9d-8cff-492b-bd91-1e084fc96f84', 1_400],
+  ['6dec1384-1629-46fa-bfb6-a7017ee021c4', 1_000],
+  ['6f32aac6-21e0-436c-8b13-494c1f25bbb0', 1_000],
+  ['a61efeda-ebda-463c-9606-d38d8353bf73', 2_000],
+]);
+
+type ScenePhase = 'initial' | 'playing-forward' | 'paused-forward' | 'final' | 'playing-reverse' | 'paused-reverse';
+
+type OrbitControlsLike = {
+  enablePan?: boolean;
+  enableRotate?: boolean;
+  enableZoom?: boolean;
+  isTouchZoom?: boolean;
+  mouseButtons?: number[];
+  update?: () => void;
+};
+
+type SplineEventManagerLike = {
+  pause?: () => void;
+};
+
+function getOrbitControls(app: Application): OrbitControlsLike | undefined {
+  return (app.controls as { orbitControls?: OrbitControlsLike } | undefined)?.orbitControls;
+}
+
+function getEventManager(app: Application): SplineEventManagerLike | undefined {
+  return app.eventManager as SplineEventManagerLike | undefined;
+}
+
+function dispatchSceneStatus(type: 'mc:spline-loading' | 'mc:spline-ready' | 'mc:spline-error') {
+  window.dispatchEvent(new CustomEvent(type));
+}
+
+function isEditableTarget(target: EventTarget | null) {
+  return target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName));
+}
 
 function getStartEventObjects(app: Application, events: SplineEventMap) {
   return Object.keys(events.start ?? {})
@@ -89,15 +130,244 @@ export default function StickerSplineScene() {
     let cancelled = false;
     let pollCount = 0;
     let pollTimer: number | undefined;
-    let armTimer: number | undefined;
-    let media: gsap.MatchMedia | undefined;
+    let preheatTimer: number | undefined;
+    let readyRaf: number | undefined;
+    let playbackIdleTimer: number | undefined;
+    let progressRaf: number | undefined;
     let pinTrigger: ScrollTrigger | undefined;
+    let phase: ScenePhase = 'initial';
+    let activeDirection: -1 | 1 = 1;
+    let progressMs = 0;
+    let lastProgressAt = 0;
+    let sceneReady = false;
+    let scrollLocked = false;
+    let lockedScrollY = 0;
+    let touchY: number | undefined;
+    let startObjects: SPEObject[] = [];
+    let transitionControllers: TransitionFactory[] = [];
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const eventManager = getEventManager(app);
+
+    const updatePhase = (nextPhase: ScenePhase) => {
+      phase = nextPhase;
+      stage.dataset.scenePhase = nextPhase;
+      stage.dataset.sceneProgress = (progressMs / INTRO_PLAYBACK_DURATION).toFixed(3);
+      stage.setAttribute('aria-busy', String(nextPhase !== 'initial' && nextPhase !== 'final'));
+    };
+
+    const lockScroll = () => {
+      if (scrollLocked) return;
+      lockedScrollY = window.scrollY;
+      scrollLocked = true;
+      stage.dataset.scrollGate = 'locked';
+    };
+
+    const unlockScroll = () => {
+      scrollLocked = false;
+      delete stage.dataset.scrollGate;
+    };
+
+    const cancelProgressFrame = () => {
+      if (progressRaf !== undefined) window.cancelAnimationFrame(progressRaf);
+      progressRaf = undefined;
+    };
+
+    const seekScene = (timeMs: number) => {
+      transitionControllers.forEach((controller) => controller.seek(timeMs));
+      app.requestRender();
+    };
+
+    const settlePlayback = (target: 'initial' | 'final') => {
+      if (cancelled) return;
+      if (playbackIdleTimer !== undefined) window.clearTimeout(playbackIdleTimer);
+      playbackIdleTimer = undefined;
+      cancelProgressFrame();
+      progressMs = target === 'final' ? INTRO_PLAYBACK_DURATION : 0;
+      eventManager?.pause?.();
+      seekScene(progressMs);
+      updatePhase(target);
+      unlockScroll();
+    };
+
+    const advanceProgress = (now: number) => {
+      if (cancelled || (phase !== 'playing-forward' && phase !== 'playing-reverse')) {
+        cancelProgressFrame();
+        return;
+      }
+      const elapsed = Math.min(64, Math.max(0, now - lastProgressAt));
+      lastProgressAt = now;
+      progressMs = Math.max(0, Math.min(INTRO_PLAYBACK_DURATION, progressMs + elapsed * activeDirection));
+      seekScene(progressMs);
+      stage.dataset.sceneProgress = (progressMs / INTRO_PLAYBACK_DURATION).toFixed(3);
+      if (activeDirection > 0 && progressMs >= INTRO_PLAYBACK_DURATION) {
+        settlePlayback('final');
+        return;
+      }
+      if (activeDirection < 0 && progressMs <= 0) {
+        settlePlayback('initial');
+        return;
+      }
+      progressRaf = window.requestAnimationFrame(advanceProgress);
+    };
+
+    const pausePlayback = () => {
+      playbackIdleTimer = undefined;
+      if (phase !== 'playing-forward' && phase !== 'playing-reverse') return;
+      eventManager?.pause?.();
+      cancelProgressFrame();
+      updatePhase(activeDirection > 0 ? 'paused-forward' : 'paused-reverse');
+      seekScene(progressMs);
+    };
+
+    const requestedDirection = (direction: -1 | 1) => {
+      if (
+        cancelled
+        || reducedMotion
+        || !sceneReady
+        || startObjects.length === 0
+        || document.querySelector('[data-sticker-scene-preheat-dialog]')
+      ) return false;
+      if (direction > 0 && progressMs >= INTRO_PLAYBACK_DURATION) return false;
+      if (direction < 0 && progressMs <= 0) return false;
+
+      const wasPlaying = phase === 'playing-forward' || phase === 'playing-reverse';
+      if (wasPlaying && lastProgressAt > 0) {
+        const now = performance.now();
+        const elapsed = Math.min(64, Math.max(0, now - lastProgressAt));
+        progressMs = Math.max(0, Math.min(INTRO_PLAYBACK_DURATION, progressMs + elapsed * activeDirection));
+        seekScene(progressMs);
+        lastProgressAt = now;
+      }
+
+      lockScroll();
+      activeDirection = direction;
+      updatePhase(direction > 0 ? 'playing-forward' : 'playing-reverse');
+
+      if (progressRaf === undefined) {
+        lastProgressAt = performance.now();
+        progressRaf = window.requestAnimationFrame(advanceProgress);
+      }
+      if (playbackIdleTimer !== undefined) window.clearTimeout(playbackIdleTimer);
+      playbackIdleTimer = window.setTimeout(pausePlayback, PLAYBACK_IDLE_DELAY);
+      return true;
+    };
+
+    const getScrollBoundaries = () => {
+      const rect = section.getBoundingClientRect();
+      const top = rect.top + window.scrollY;
+      return { start: top, end: top + rect.height - window.innerHeight };
+    };
+
+    const gateProjectedCrossing = (direction: -1 | 1, projectedScrollY: number) => {
+      if (!sceneReady || reducedMotion) return false;
+      const currentScrollY = window.scrollY;
+      const { start, end } = getScrollBoundaries();
+      if (direction > 0 && progressMs < INTRO_PLAYBACK_DURATION && currentScrollY < start && projectedScrollY >= start) {
+        window.scrollTo({ top: start, left: window.scrollX, behavior: 'instant' });
+        return requestedDirection(1);
+      }
+      if (direction < 0 && progressMs > 0 && currentScrollY > end && projectedScrollY <= end) {
+        window.scrollTo({ top: end, left: window.scrollX, behavior: 'instant' });
+        return requestedDirection(-1);
+      }
+      return false;
+    };
+
+    const handleWheel = (event: WheelEvent) => {
+      if (reducedMotion || Math.abs(event.deltaY) < 1) return;
+      const direction: -1 | 1 = event.deltaY > 0 ? 1 : -1;
+      if (scrollLocked) {
+        requestedDirection(direction);
+        event.preventDefault();
+        return;
+      }
+      if (gateProjectedCrossing(direction, window.scrollY + event.deltaY)) {
+        event.preventDefault();
+        return;
+      }
+      const isInsideGate = Boolean(pinTrigger?.isActive) || scrollLocked;
+      if (!isInsideGate) return;
+      if (requestedDirection(direction)) event.preventDefault();
+    };
+
+    const stopSplineWheel = (event: WheelEvent) => {
+      // Keep wheel/trackpad input for the document. Stopping propagation here
+      // prevents Spline from interpreting it as camera dolly or trackpad pan;
+      // the default page scroll remains untouched when the gate is open.
+      event.stopPropagation();
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      touchY = event.touches[0]?.clientY;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (reducedMotion || touchY === undefined) return;
+      const currentY = event.touches[0]?.clientY;
+      if (currentY === undefined) return;
+      const delta = touchY - currentY;
+      touchY = currentY;
+      if (Math.abs(delta) < 2) return;
+      const direction: -1 | 1 = delta > 0 ? 1 : -1;
+      if (scrollLocked) {
+        requestedDirection(direction);
+        event.preventDefault();
+        return;
+      }
+      if (gateProjectedCrossing(direction, window.scrollY + delta)) {
+        event.preventDefault();
+        return;
+      }
+      const isInsideGate = Boolean(pinTrigger?.isActive) || scrollLocked;
+      if (isInsideGate && requestedDirection(direction)) event.preventDefault();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (reducedMotion || event.defaultPrevented || !SCROLL_KEYS.has(event.key) || isEditableTarget(event.target)) return;
+      const direction: -1 | 1 = event.key === 'ArrowUp' || event.key === 'PageUp' || event.key === 'Home' || (event.key === ' ' && event.shiftKey) ? -1 : 1;
+      const keyDistance = event.key === 'ArrowDown' || event.key === 'ArrowUp' ? 40 : window.innerHeight * 0.9;
+      if (scrollLocked) {
+        requestedDirection(direction);
+        event.preventDefault();
+        return;
+      }
+      if (gateProjectedCrossing(direction, window.scrollY + direction * keyDistance)) {
+        event.preventDefault();
+        return;
+      }
+      const isInsideGate = Boolean(pinTrigger?.isActive) || scrollLocked;
+      if (!isInsideGate) return;
+      if (requestedDirection(direction)) event.preventDefault();
+    };
+
+    const holdScrollPosition = () => {
+      if (!scrollLocked || Math.abs(window.scrollY - lockedScrollY) < 1) return;
+      window.scrollTo({ top: lockedScrollY, left: window.scrollX, behavior: 'instant' });
+    };
+
+    window.addEventListener('wheel', handleWheel, { capture: true, passive: false });
+    window.addEventListener('touchstart', handleTouchStart, { capture: true, passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { capture: true, passive: false });
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    window.addEventListener('scroll', holdScrollPosition, { passive: true });
+    stage.addEventListener('wheel', stopSplineWheel, { capture: true, passive: true });
 
     const cleanup = () => {
       cancelled = true;
       if (pollTimer !== undefined) window.clearTimeout(pollTimer);
-      if (armTimer !== undefined) window.clearTimeout(armTimer);
-      media?.revert();
+      if (preheatTimer !== undefined) window.clearTimeout(preheatTimer);
+      if (readyRaf !== undefined) window.cancelAnimationFrame(readyRaf);
+      if (playbackIdleTimer !== undefined) window.clearTimeout(playbackIdleTimer);
+      cancelProgressFrame();
+      transitionControllers.forEach((controller) => controller.pause());
+      transitionControllers = [];
+      window.removeEventListener('wheel', handleWheel, { capture: true });
+      window.removeEventListener('touchstart', handleTouchStart, { capture: true });
+      window.removeEventListener('touchmove', handleTouchMove, { capture: true });
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
+      window.removeEventListener('scroll', holdScrollPosition);
+      stage.removeEventListener('wheel', stopSplineWheel, { capture: true });
+      unlockScroll();
       pinTrigger?.kill();
     };
 
@@ -110,6 +380,12 @@ export default function StickerSplineScene() {
       pinSpacing: false,
       anticipatePin: 1,
       invalidateOnRefresh: true,
+      onEnter: () => {
+        if (!scrollLocked && progressMs < INTRO_PLAYBACK_DURATION) requestedDirection(1);
+      },
+      onEnterBack: () => {
+        if (!scrollLocked && progressMs > 0) requestedDirection(-1);
+      },
     });
 
     const initializeWhenReady = () => {
@@ -117,7 +393,7 @@ export default function StickerSplineScene() {
 
       const allObjects = app.getAllObjects();
       const events = getSplineEventsSafely(app);
-      const startObjects = getStartEventObjects(app, events);
+      startObjects = getStartEventObjects(app, events);
       const backdrop = app.findObjectByName('Backdrop');
 
       if (backdrop?.visible) {
@@ -126,6 +402,18 @@ export default function StickerSplineScene() {
       // Spline's runtime ignores alpha in background colors. Matching the
       // canvas clear color to this section removes the exported rectangle.
       app.setBackgroundColor('#cb9933');
+      app.setZoom(SCENE_ZOOM);
+      const orbitControls = getOrbitControls(app);
+      if (orbitControls) {
+        orbitControls.enableZoom = false;
+        orbitControls.isTouchZoom = false;
+        orbitControls.enablePan = true;
+        orbitControls.enableRotate = true;
+        // Runtime input mode 3 maps primary drag to orbit and Shift+drag to pan.
+        if (Array.isArray(orbitControls.mouseButtons)) orbitControls.mouseButtons[0] = 3;
+        orbitControls.update?.();
+      }
+      app.canvas.style.touchAction = 'pan-y pinch-zoom';
       app.requestRender();
 
       if (import.meta.env.DEV) {
@@ -139,101 +427,69 @@ export default function StickerSplineScene() {
         pollCount += 1;
         if (pollCount < READY_POLL_LIMIT) {
           pollTimer = window.setTimeout(initializeWhenReady, READY_POLL_INTERVAL);
+        } else {
+          updatePhase('final');
+          setIsLoaded(true);
+          dispatchSceneStatus('mc:spline-error');
         }
         return;
       }
 
-      setIsLoaded(true);
-
-      // Let Spline's exported Start animation own the objects. The page-level
-      // scrub only moves the canvas, so it cannot overwrite native states.
-      armTimer = window.setTimeout(() => {
+      const finishPreheat = (target: 'initial' | 'final') => {
         if (cancelled || splineRef.current !== app) return;
-
-        media = gsap.matchMedia();
-        media.add('(prefers-reduced-motion: no-preference)', () => {
-          const canvas = stage.querySelector('canvas');
-          const visual = canvas?.parentElement ?? canvas;
-          const visualTween = visual
-            ? gsap.fromTo(
-                visual,
-                { scale: 0.985, yPercent: 1.5 },
-                {
-                  scale: 1.045,
-                  yPercent: -1.5,
-                  ease: 'none',
-                  scrollTrigger: {
-                    trigger: section,
-                    start: 'top bottom',
-                    end: 'bottom top',
-                    scrub: 0.65,
-                  },
-                },
-              )
-            : undefined;
-
-          let lastScrollY = window.scrollY;
-          let pendingDirection: -1 | 0 | 1 = 0;
-          let stableDirection: -1 | 0 | 1 = 0;
-          let accumulatedDelta = 0;
-          let initialForwardIsNative = true;
-
-          const replayIntro = (direction: -1 | 1) => {
-            // The export auto-plays Start once. Suppressing the first committed
-            // downward direction prevents a duplicate animation on entry.
-            if (direction === 1 && initialForwardIsNative) {
-              initialForwardIsNative = false;
-              stableDirection = 1;
-              return true;
-            }
-
-            initialForwardIsNative = false;
-            startObjects.forEach((object) => {
-              try {
-                if (direction === 1) app.emitEvent('start', object.uuid);
-                else app.emitEventReverse('start', object.uuid);
-              } catch {
-                // A disposed or reloading scene can briefly invalidate an id.
-              }
-            });
-            stableDirection = direction;
-            app.requestRender();
-            return true;
-          };
-
-          const directionTrigger = ScrollTrigger.create({
-            trigger: section,
-            start: 'top 85%',
-            end: 'bottom 15%',
-            onUpdate: () => {
-              const scrollY = window.scrollY;
-              const delta = scrollY - lastScrollY;
-              lastScrollY = scrollY;
-              if (Math.abs(delta) < 0.5) return;
-
-              const direction: -1 | 1 = delta > 0 ? 1 : -1;
-              if (direction !== pendingDirection) {
-                pendingDirection = direction;
-                accumulatedDelta = delta;
-              } else {
-                accumulatedDelta += delta;
-              }
-
-              if (Math.abs(accumulatedDelta) < DIRECTION_DEADBAND || direction === stableDirection) return;
-              if (replayIntro(direction)) accumulatedDelta = 0;
-            },
-          });
-
-          return () => {
-            directionTrigger.kill();
-            visualTween?.scrollTrigger?.kill();
-            visualTween?.kill();
-            if (visual) gsap.set(visual, { clearProps: 'transform' });
-          };
-        });
-
+        progressMs = target === 'final' ? INTRO_PLAYBACK_DURATION : 0;
+        eventManager?.pause?.();
+        sceneReady = true;
+        updatePhase(target);
+        setIsLoaded(true);
+        dispatchSceneStatus('mc:spline-ready');
         ScrollTrigger.refresh();
-      }, INTRO_REPLAY_ARM_DELAY);
+      };
+
+      eventManager?.pause?.();
+
+      if (reducedMotion) {
+        // Resolve directly to the authored final state and pause only Spline's
+        // event timelines. Camera controls and on-demand rendering stay live.
+        startObjects.forEach((object) => {
+          try {
+            object.state = 'State';
+          } catch {
+            // Ignore an object disposed during hot reload.
+          }
+        });
+        app.requestRender();
+        readyRaf = window.requestAnimationFrame(() => {
+          finishPreheat('final');
+        });
+        return;
+      }
+
+      startObjects.forEach((object) => {
+        try {
+          object.state = undefined;
+        } catch {
+          // Ignore an object disposed during hot reload.
+        }
+      });
+      transitionControllers = startObjects.map((object) => {
+        const delay = STICKER_TRANSITION_DELAYS.get(object.uuid);
+        if (delay === undefined) throw new Error(`Missing authored transition timing for ${object.uuid}.`);
+        return object.transition({
+          from: null,
+          to: 'State',
+          duration: 3_000,
+          delay,
+          easing: SPLINE_EASE_IN_OUT,
+          autoPlay: false,
+        }).pause().seek(0);
+      });
+      seekScene(0);
+      // onLoad has resolved all scene assets; this short hold lets the first
+      // GPU frame settle behind the preheat takeover before it exits.
+      preheatTimer = window.setTimeout(() => {
+        readyRaf = window.requestAnimationFrame(() => finishPreheat('initial'));
+      }, 320);
     };
 
     initializeWhenReady();
@@ -243,20 +499,28 @@ export default function StickerSplineScene() {
     splineRef.current = app;
     app.setGlobalEvents(false);
     setIsLoaded(false);
+    dispatchSceneStatus('mc:spline-loading');
     setupScroll(app);
   }, [setupScroll]);
 
   const handleSceneError = useCallback(() => {
     cleanupRef.current?.();
     setIsLoaded(true);
+    dispatchSceneStatus('mc:spline-error');
   }, []);
 
-  useEffect(() => () => cleanupRef.current?.(), []);
+  useEffect(() => {
+    dispatchSceneStatus('mc:spline-loading');
+    return () => cleanupRef.current?.();
+  }, []);
 
   return (
-    <section ref={sectionRef} className="relative h-[175vh] bg-lab-gold text-lab-black lg:h-[220vh]">
+    <section ref={sectionRef} data-sticker-scene-section className="relative h-[115vh] bg-lab-gold text-lab-black">
       <div ref={stageRef} className="relative h-screen overflow-hidden bg-lab-gold">
-        <div className="absolute inset-0">
+        <div
+          className="absolute inset-0 origin-center will-change-transform"
+          style={{ transform: 'translate3d(clamp(2rem, 9vw, 9rem), 0, 0) scale(1.1)' }}
+        >
           {!isLoaded && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-lab-gold" role="status">
               <span className="font-accent text-xs font-bold uppercase tracking-[0.16em] text-lab-black/55">Loading sticker scene…</span>
