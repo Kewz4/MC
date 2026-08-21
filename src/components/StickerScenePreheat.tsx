@@ -136,6 +136,10 @@ export default function StickerScenePreheat() {
   const [isVisible, setIsVisible] = useState(true);
   const [isMounted, setIsMounted] = useState(true);
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('mc:preheat-mounted'));
+  }, []);
+
   useEffect(() => subscribeToCacheProgress(setCacheProgress), []);
 
   useEffect(() => {
@@ -145,7 +149,6 @@ export default function StickerScenePreheat() {
     if (!dialog) return;
 
     const body = document.body;
-    const scrollY = window.scrollY;
     const bodyStyle = {
       overflow: body.style.overflow,
       overscrollBehavior: body.style.overscrollBehavior,
@@ -158,11 +161,6 @@ export default function StickerScenePreheat() {
         ariaHidden: element.getAttribute('aria-hidden'),
       }));
 
-    // Bring the covered canvas into the viewport so Spline can initialize
-    // while the takeover is visible. The original position is restored before
-    // the page becomes interactive, so visitors still begin at the hero.
-    const sceneSection = document.querySelector<HTMLElement>('[data-sticker-scene-section]');
-    if (sceneSection) window.scrollTo({ top: sceneSection.offsetTop, left: 0, behavior: 'instant' });
     body.style.overflow = 'hidden';
     body.style.overscrollBehavior = 'none';
     siblings.forEach(({ element }) => {
@@ -196,7 +194,6 @@ export default function StickerScenePreheat() {
       });
       body.style.overflow = bodyStyle.overflow;
       body.style.overscrollBehavior = bodyStyle.overscrollBehavior;
-      window.scrollTo({ top: scrollY, left: window.scrollX, behavior: 'instant' });
     };
   }, [isMounted]);
 

@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import SiteFooter from './components/SiteFooter';
 import SiteHeader from './components/SiteHeader';
+import StickerScenePreheat from './components/StickerScenePreheat';
 import HomePage from './pages/HomePage';
 
 const ServicesPage = lazy(() => import('./pages/ServicesPage'));
@@ -68,9 +69,12 @@ function InteriorLayout() {
 }
 
 function PageRoutes() {
+  const location = useLocation();
+
   return (
     <>
       <RouteEffects />
+      {location.pathname === '/stickers' && <StickerScenePreheat />}
       <SiteHeader />
       <Routes>
         <Route path="/" element={<HomePage />} />

@@ -3,7 +3,6 @@ import { ArrowDown, ArrowRight, Check, FileUp, Mail, Send, Sparkles } from 'luci
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Link } from 'react-router-dom';
-import StickerScenePreheat from '../components/StickerScenePreheat';
 import StickerSplineScene from '../components/StickerSplineScene';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -413,8 +412,7 @@ export default function StickersPage() {
     : 'Approximate finished size *';
 
   return (
-    <main ref={pageRef} className="overflow-hidden bg-white">
-      <StickerScenePreheat />
+    <main ref={pageRef} className="overflow-x-clip bg-white">
       <section className="relative bg-lab-black px-6 pb-16 pt-32 text-white sm:px-8 lg:px-10 lg:pb-24 lg:pt-40">
         <div className="absolute inset-x-0 bottom-0 h-px bg-white/15" />
         <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
