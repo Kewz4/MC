@@ -6,7 +6,7 @@ const READY_HOLD_TIME = 520;
 const FALLBACK_HOLD_TIME = 650;
 const EXIT_DURATION = 420;
 const HARD_RELEASE_TIMEOUT = 25_000;
-const CHECK_ROTATION_INTERVAL = 1_650;
+const CHECK_ROTATION_INTERVAL = 1_800;
 
 type PreheatState = 'preheating' | 'initializing' | 'ready' | 'fallback' | 'background';
 
@@ -22,31 +22,26 @@ const productionChecks = [
   'Checking the holographic sparkle.',
 ];
 
-const stateContent: Record<PreheatState, { eyebrow: string; title: string; detail: string }> = {
+const stateContent: Record<PreheatState, { phase: string; detail: string }> = {
   preheating: {
-    eyebrow: 'Caching the scene',
-    title: 'Preheating the press.',
-    detail: 'Preparing the interactive sticker scene.',
+    phase: 'Caching the 3D scene',
+    detail: 'Getting the sticker wall ready to move.',
   },
   initializing: {
-    eyebrow: 'Starting the scene',
-    title: 'Almost ready to stick.',
-    detail: 'Loading the stickers and their motion.',
+    phase: 'Starting the interaction',
+    detail: 'The stickers are loaded. Motion is coming online.',
   },
   ready: {
-    eyebrow: 'Scene ready',
-    title: 'Fresh off the press.',
-    detail: 'The interactive sticker scene is ready.',
+    phase: 'Scene ready',
+    detail: 'Everything is ready to move.',
   },
   fallback: {
-    eyebrow: 'Preview ready',
-    title: 'Still looking sharp.',
-    detail: 'Opening the lightweight sticker experience.',
+    phase: 'Opening the page',
+    detail: 'The lightweight sticker experience is ready.',
   },
   background: {
-    eyebrow: 'Taking longer than usual',
-    title: 'Let’s keep moving.',
-    detail: 'The sticker scene will finish in the background.',
+    phase: 'Opening the page',
+    detail: 'The sticker scene will finish loading in the background.',
   },
 };
 
@@ -261,8 +256,8 @@ export default function StickerScenePreheat() {
     ? Math.min(100, Math.round((cacheProgress.loaded / (cacheProgress.total ?? 1)) * 100))
     : null;
   const isCacheComplete = cacheStatus === 'complete' || state === 'ready';
-  const isSettling = state === 'fallback' || state === 'background';
-  const progressWidth = isCacheComplete || isSettling ? '100%' : cachePercent === null ? '12%' : `${Math.max(2, cachePercent)}%`;
+  const isIndeterminate = cachePercent === null && !isCacheComplete;
+  const progressWidth = isCacheComplete ? '100%' : cachePercent === null ? '34%' : `${Math.max(2, cachePercent)}%`;
   const progressText = state === 'ready'
     ? 'Ready'
     : state === 'initializing'
@@ -272,6 +267,13 @@ export default function StickerScenePreheat() {
         : cachePercent === null
           ? formatBytes(cacheProgress.loaded)
           : `${cachePercent}% cached`;
+  const progressMetric = isCacheComplete
+    ? '100%'
+    : state === 'fallback' || state === 'background'
+      ? 'Opening'
+      : cachePercent === null
+        ? formatBytes(cacheProgress.loaded)
+        : `${cachePercent}%`;
 
   return createPortal(
     <div
@@ -280,66 +282,55 @@ export default function StickerScenePreheat() {
       role="dialog"
       aria-modal="true"
       aria-labelledby="sticker-preheat-title"
-      aria-describedby="sticker-preheat-description"
+      aria-describedby="sticker-preheat-description sticker-preheat-status"
       tabIndex={-1}
+      aria-busy={state === 'preheating' || state === 'initializing'}
       className={`fixed inset-0 z-[200] overflow-x-hidden overflow-y-auto overscroll-contain bg-lab-white text-lab-black outline-none transition-opacity duration-[420ms] ease-out motion-reduce:transition-none ${isVisible ? 'opacity-100' : 'opacity-0'}`}
     >
-      <div className="pointer-events-none absolute -right-[18vw] -top-[18vw] h-[52vw] w-[52vw] min-h-80 min-w-80 rounded-full border-[clamp(2rem,8vw,8rem)] border-lab-gold/18" aria-hidden="true" />
-      <div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-lab-red/8 blur-3xl" aria-hidden="true" />
+      <div className="relative mx-auto flex min-h-full w-full max-w-xl flex-col items-center justify-center px-6 py-12 text-center sm:px-8 sm:py-16">
+        <img src="/assets/brand/merchcraft-primary-full.svg" alt="Merchcraft" className="h-auto w-[min(17rem,68vw)]" />
 
-      <div className="relative mx-auto flex h-full min-h-[32rem] max-w-7xl flex-col px-6 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-10">
-        <div className="flex items-center justify-between border-b border-lab-black/12 pb-6">
-          <img src="/assets/brand/merchcraft-primary-full.svg" alt="Merchcraft" className="h-8 w-auto sm:h-10" />
-          <span className="flex items-center gap-3 font-accent text-[10px] font-bold uppercase tracking-[0.16em] text-lab-black/55 sm:text-xs">
-            <span className={`h-2 w-2 rounded-full ${state === 'ready' ? 'bg-lab-gold' : 'animate-pulse bg-lab-red motion-reduce:animate-none'}`} aria-hidden="true" />
-            Sticker scene
-          </span>
+        <div className="mt-12 flex items-center justify-center gap-3 font-accent text-[10px] font-bold uppercase tracking-[0.16em] text-lab-red sm:text-xs">
+          <span className={`h-2 w-2 rounded-full ${state === 'ready' ? 'bg-lab-gold' : 'animate-pulse bg-lab-red motion-reduce:animate-none'}`} aria-hidden="true" />
+          <span aria-live="polite">{content.phase}</span>
         </div>
 
-        <div className="grid flex-1 content-center gap-10 py-10 lg:grid-cols-[1.08fr_0.92fr] lg:items-center lg:gap-20">
-          <div>
-            <p className="font-accent text-xs font-bold uppercase tracking-[0.18em] text-lab-red sm:text-sm" aria-live="polite">{content.eyebrow}</p>
-            <h1 id="sticker-preheat-title" className="mt-5 max-w-[8ch] font-display text-[clamp(4.25rem,9vw,9.5rem)] font-bold uppercase leading-[0.8] tracking-[-0.045em]">
-              {content.title}
-            </h1>
-            <p id="sticker-preheat-description" className="mt-7 max-w-xl text-sm font-semibold leading-relaxed text-lab-black/58 sm:text-base">
-              {content.detail}
-            </p>
-          </div>
+        <h1 id="sticker-preheat-title" className="mt-5 max-w-[11ch] font-display text-[clamp(3.25rem,8vw,5.8rem)] font-bold uppercase leading-[0.88] tracking-[-0.035em]">
+          Loading interactive stickers
+        </h1>
+        <p id="sticker-preheat-description" className="mt-5 max-w-md text-sm font-semibold leading-relaxed text-lab-black/58 sm:text-base">
+          {content.detail}
+        </p>
 
-          <div className="relative overflow-hidden bg-lab-black px-6 py-7 text-white shadow-[0_30px_80px_rgba(16,24,32,0.2)] sm:px-9 sm:py-10">
-            <div className="absolute right-0 top-0 h-24 w-24 translate-x-1/2 -translate-y-1/2 rounded-full bg-lab-gold" aria-hidden="true" />
-            <p className="font-accent text-[10px] font-bold uppercase tracking-[0.18em] text-lab-gold sm:text-xs">Production check</p>
-            <p className="mt-12 min-h-[2.2em] max-w-[13ch] font-display text-[clamp(2.4rem,4vw,4.75rem)] font-bold uppercase leading-[0.88] tracking-tight" aria-live="off">
-              {productionChecks[activeCheck]}
-            </p>
-            <div className="mt-14 flex items-center gap-2" aria-hidden="true">
-              {productionChecks.map((check, index) => (
-                <span key={check} className={`h-1 flex-1 transition-colors duration-300 motion-reduce:transition-none ${index === activeCheck ? 'bg-lab-gold' : 'bg-white/16'}`} />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="border-t border-lab-black/12 pt-5">
-          <div className="flex items-center justify-between gap-5 font-accent text-[10px] font-bold uppercase tracking-[0.13em] text-lab-black/55 sm:text-xs">
-            <span>{content.eyebrow}</span>
-            <span>{progressText}</span>
+        <div className="mt-11 w-full text-left sm:mt-12">
+          <div className="flex items-end justify-between gap-5">
+            <span className="font-accent text-[10px] font-bold uppercase tracking-[0.14em] text-lab-black/50 sm:text-xs">Scene progress</span>
+            <span className="font-accent text-sm font-bold tracking-[-0.02em] text-lab-black sm:text-base">{progressMetric}</span>
           </div>
           <div
-            className="mt-3 h-1 overflow-hidden bg-lab-black/10"
+            className="mt-3 h-3 overflow-hidden bg-lab-black/10"
             role="progressbar"
             aria-label="Sticker scene cache progress"
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-valuenow={state === 'preheating' && cachePercent !== null ? cachePercent : isCacheComplete || isSettling ? 100 : undefined}
+            aria-valuenow={isCacheComplete ? 100 : cachePercent ?? undefined}
             aria-valuetext={progressText}
           >
             <div
-              className={`h-full bg-lab-gold transition-[width] duration-200 ease-out motion-reduce:transition-none ${!isCacheComplete && !isSettling && cachePercent === null ? 'animate-pulse motion-reduce:animate-none' : ''}`}
+              className={`h-full bg-lab-gold transition-[width] duration-200 ease-out motion-reduce:transition-none ${isIndeterminate ? 'animate-pulse motion-reduce:animate-none' : ''}`}
               style={{ width: progressWidth }}
             />
           </div>
+          <p id="sticker-preheat-status" className="mt-3 text-center font-accent text-[10px] font-bold uppercase tracking-[0.12em] text-lab-black/48 sm:text-xs" role="status" aria-live="polite">
+            {progressText}
+          </p>
+        </div>
+
+        <div className="mt-10 w-full border-t border-lab-black/12 pt-6 sm:mt-12">
+          <p className="font-accent text-[9px] font-bold uppercase tracking-[0.16em] text-lab-black/42 sm:text-[10px]">Production check</p>
+          <p className="mt-2 min-h-[1.6em] text-sm font-semibold text-lab-black/72 sm:text-base" aria-live="off">
+            {productionChecks[activeCheck]}
+          </p>
         </div>
       </div>
     </div>,

@@ -61,6 +61,7 @@ type StickerTrackDefinition = {
 type StickerTrack = StickerTrackDefinition & { object: SPEObject };
 
 type OrbitControlsLike = {
+  enabled?: boolean;
   enablePan?: boolean;
   enableRotate?: boolean;
   enableZoom?: boolean;
@@ -71,6 +72,48 @@ type OrbitControlsLike = {
 
 type SplineEventManagerLike = {
   pause?: () => void;
+  eventContext?: SplineEventContextLike;
+};
+
+type RuntimePoint = { x: number; y: number; z: number };
+
+type RuntimeObject = {
+  uuid?: string;
+  parent?: RuntimeObject | null;
+  object?: RuntimeObject;
+};
+
+type RuntimeRay = {
+  origin: RuntimePoint;
+  direction: RuntimePoint;
+};
+
+type RuntimeHit = {
+  object?: RuntimeObject;
+  point?: RuntimePoint;
+};
+
+type SplineEventContextLike = {
+  domRect?: DOMRect;
+  updateRaycaster?: (event: PointerEvent) => void;
+  raycaster?: { ray?: RuntimeRay };
+  page?: { raycastWithClones?: (raycaster: unknown) => RuntimeHit[] };
+};
+
+type DragOffset = RuntimePoint;
+
+type StickerHit = {
+  track: StickerTrack;
+  point: RuntimePoint;
+};
+
+type ActiveStickerDrag = {
+  pointerId: number;
+  track: StickerTrack;
+  planePoint: RuntimePoint;
+  planeNormal: RuntimePoint;
+  startIntersection: RuntimePoint;
+  startOffset: DragOffset;
 };
 
 type SplineDebugWindow = Window & {
@@ -82,13 +125,11 @@ const READY_POLL_INTERVAL = 180;
 const READY_POLL_LIMIT = 50;
 const INTRO_PLAYBACK_DURATION = 5_000;
 const TRACK_DURATION = 3_000;
-const PAN_RETURN_DURATION = 440;
-const DESKTOP_SCENE_ZOOM = 2.05;
-const MOBILE_SCENE_ZOOM = 1.6;
+const DRAG_RETURN_DURATION = 440;
+const DESKTOP_SCENE_ZOOM = 2.25;
+const MOBILE_SCENE_ZOOM = 1.72;
 const DEGREES_TO_RADIANS = Math.PI / 180;
-const WHEEL_BURST_GAP = 650;
 const SCROLL_BOUNDARY_EPSILON = 1;
-const SCROLL_KEYS = new Set(['ArrowDown', 'ArrowUp', 'End', 'Home', 'PageDown', 'PageUp', ' ']);
 
 // These are the authored Base and State transforms. The two original full-spin
 // paths have been normalized to their equivalent shortest angles so the front
@@ -185,18 +226,6 @@ function easeInOut(progress: number) {
   return progress * progress * (3 - 2 * progress);
 }
 
-function readTranslation(element: HTMLElement) {
-  const transform = window.getComputedStyle(element).transform;
-  if (!transform || transform === 'none') return { x: 0, y: 0 };
-
-  try {
-    const matrix = new DOMMatrixReadOnly(transform);
-    return { x: matrix.m41, y: matrix.m42 };
-  } catch {
-    return { x: 0, y: 0 };
-  }
-}
-
 function applyVector(
   target: { x: number; y: number; z: number },
   from: Vector3,
@@ -209,18 +238,51 @@ function applyVector(
   target.z = lerp(from[2], to[2], progress) * multiplier;
 }
 
-function applyTrack(track: StickerTrack, masterProgress: number) {
+function applyTrack(track: StickerTrack, masterProgress: number, dragOffset?: DragOffset) {
   const playhead = masterProgress * INTRO_PLAYBACK_DURATION;
   const localProgress = easeInOut(clamp01((playhead - track.delay) / TRACK_DURATION));
   applyVector(track.object.position, track.from.position, track.to.position, localProgress);
+  if (dragOffset) {
+    track.object.position.x += dragOffset.x;
+    track.object.position.y += dragOffset.y;
+    track.object.position.z += dragOffset.z;
+  }
   applyVector(track.object.rotation, track.from.rotation, track.to.rotation, localProgress, DEGREES_TO_RADIANS);
   applyVector(track.object.scale, track.from.scale, track.to.scale, localProgress);
+}
+
+function copyPoint(point: RuntimePoint): RuntimePoint {
+  return { x: point.x, y: point.y, z: point.z };
+}
+
+function normalizePoint(point: RuntimePoint): RuntimePoint | null {
+  const length = Math.hypot(point.x, point.y, point.z);
+  if (!Number.isFinite(length) || length < 0.000001) return null;
+  return { x: point.x / length, y: point.y / length, z: point.z / length };
+}
+
+function intersectRayWithPlane(ray: RuntimeRay, planePoint: RuntimePoint, planeNormal: RuntimePoint): RuntimePoint | null {
+  const denominator = ray.direction.x * planeNormal.x
+    + ray.direction.y * planeNormal.y
+    + ray.direction.z * planeNormal.z;
+  if (Math.abs(denominator) < 0.000001) return null;
+
+  const distance = (
+    (planePoint.x - ray.origin.x) * planeNormal.x
+    + (planePoint.y - ray.origin.y) * planeNormal.y
+    + (planePoint.z - ray.origin.z) * planeNormal.z
+  ) / denominator;
+
+  return {
+    x: ray.origin.x + ray.direction.x * distance,
+    y: ray.origin.y + ray.direction.y * distance,
+    z: ray.origin.z + ray.direction.z * distance,
+  };
 }
 
 export default function StickerSplineScene() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
-  const panLayerRef = useRef<HTMLDivElement>(null);
   const splineRef = useRef<Application | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -236,24 +298,24 @@ export default function StickerSplineScene() {
     let pollTimer: number | undefined;
     let preheatTimer: number | undefined;
     let scrollRaf: number | undefined;
+    let wheelRaf: number | undefined;
+    let endpointPaintRaf: number | undefined;
+    let pointerMoveRaf: number | undefined;
+    let latestPointerMove: PointerEvent | undefined;
     let sectionTop = 0;
     let scrollRange = 1;
     let lastScrollY = window.scrollY;
-    let heldBoundary: 'start' | 'end' | undefined;
-    let scrollIntentId = 0;
-    let heldIntentId: number | undefined;
-    let lastWheelIntentAt = Number.NEGATIVE_INFINITY;
+    let pendingWheelDelta = 0;
+    let boundaryGuard: 'start' | 'end' | undefined;
+    let endpointReleaseReady: 'start' | 'end' | undefined;
     let lastProgress = Number.NaN;
     let currentZoom = 0;
     let tracks: StickerTrack[] = [];
-    let panX = 0;
-    let panY = 0;
-    let panStartX = 0;
-    let panStartY = 0;
-    let panOriginX = 0;
-    let panOriginY = 0;
-    let activePointerId: number | undefined;
-    let snapTimer: number | undefined;
+    let tracksById = new Map<string, StickerTrack>();
+    let raycastContext: SplineEventContextLike | undefined;
+    let activeDrag: ActiveStickerDrag | undefined;
+    const dragOffsets = new Map<string, DragOffset>();
+    const snapFrames = new Map<string, number>();
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const applyProgress = (progress: number, force = false) => {
@@ -262,10 +324,34 @@ export default function StickerSplineScene() {
       const nextProgress = reducedMotion ? 1 : endpointProgress;
       if (!force && Math.abs(nextProgress - lastProgress) < 0.0001) return;
       lastProgress = nextProgress;
-      tracks.forEach((track) => applyTrack(track, nextProgress));
+      tracks.forEach((track) => applyTrack(track, nextProgress, dragOffsets.get(track.id)));
       stage.dataset.sceneProgress = nextProgress.toFixed(3);
       stage.dataset.scenePhase = nextProgress <= 0 ? 'initial' : nextProgress >= 1 ? 'final' : 'scrubbing';
       app.requestRender();
+    };
+
+    const clearBoundaryGuard = () => {
+      if (endpointPaintRaf !== undefined) window.cancelAnimationFrame(endpointPaintRaf);
+      endpointPaintRaf = undefined;
+      boundaryGuard = undefined;
+      endpointReleaseReady = undefined;
+      delete stage.dataset.sceneBoundary;
+    };
+
+    const guardRenderedEndpoint = (endpoint: 'start' | 'end') => {
+      if (endpointPaintRaf !== undefined) window.cancelAnimationFrame(endpointPaintRaf);
+      boundaryGuard = endpoint;
+      endpointReleaseReady = undefined;
+      stage.dataset.sceneBoundary = endpoint;
+
+      // Two animation frames guarantee the endpoint has actually been painted
+      // before an outward wheel/momentum event is allowed to leave the scene.
+      endpointPaintRaf = window.requestAnimationFrame(() => {
+        endpointPaintRaf = window.requestAnimationFrame(() => {
+          endpointPaintRaf = undefined;
+          if (boundaryGuard === endpoint) endpointReleaseReady = endpoint;
+        });
+      });
     };
 
     const measure = () => {
@@ -277,6 +363,7 @@ export default function StickerSplineScene() {
         currentZoom = nextZoom;
         app.setZoom(nextZoom);
       }
+      if (raycastContext) raycastContext.domRect = app.canvas.getBoundingClientRect();
       lastScrollY = window.scrollY;
       applyProgress((window.scrollY - sectionTop) / scrollRange, true);
     };
@@ -287,45 +374,42 @@ export default function StickerSplineScene() {
       const sectionEnd = sectionTop + scrollRange;
       const currentScrollY = window.scrollY;
 
-      if (heldBoundary) {
-        const boundaryY = heldBoundary === 'start' ? sectionStart : sectionEnd;
-        const momentumMovingOutside = heldBoundary === 'start'
-          ? currentScrollY > boundaryY + 1
-          : currentScrollY < boundaryY - 1;
+      if (boundaryGuard) {
+        const boundaryY = boundaryGuard === 'start' ? sectionStart : sectionEnd;
+        const movingOutward = boundaryGuard === 'start'
+          ? currentScrollY < boundaryY - SCROLL_BOUNDARY_EPSILON
+          : currentScrollY > boundaryY + SCROLL_BOUNDARY_EPSILON;
+        const movingInward = boundaryGuard === 'start'
+          ? currentScrollY > boundaryY + SCROLL_BOUNDARY_EPSILON
+          : currentScrollY < boundaryY - SCROLL_BOUNDARY_EPSILON;
 
-        if (heldIntentId === scrollIntentId && momentumMovingOutside) {
+        if (movingOutward && endpointReleaseReady !== boundaryGuard) {
           window.scrollTo({ top: boundaryY, left: window.scrollX, behavior: 'instant' });
           lastScrollY = boundaryY;
-          applyProgress((boundaryY - sectionStart) / scrollRange);
+          applyProgress(boundaryGuard === 'start' ? 0 : 1);
           return;
         }
 
-        if (heldIntentId !== scrollIntentId) {
-          heldBoundary = undefined;
-          heldIntentId = undefined;
-        }
+        if (movingOutward || movingInward) clearBoundaryGuard();
       }
 
       let boundaryTarget: number | undefined;
 
       // Catch a single extreme wheel, touch, keyboard, or scrollbar jump at
       // each edge. Ordinary document scrolling remains native and continuous.
-      if (lastScrollY < sectionStart - SCROLL_BOUNDARY_EPSILON && currentScrollY >= sectionEnd) boundaryTarget = sectionStart;
-      else if (lastScrollY > sectionEnd + SCROLL_BOUNDARY_EPSILON && currentScrollY <= sectionStart) boundaryTarget = sectionEnd;
+      if (lastScrollY < sectionStart - SCROLL_BOUNDARY_EPSILON && currentScrollY >= sectionStart) boundaryTarget = sectionStart;
+      else if (lastScrollY > sectionEnd + SCROLL_BOUNDARY_EPSILON && currentScrollY <= sectionEnd) boundaryTarget = sectionEnd;
       else if (lastScrollY >= sectionStart - SCROLL_BOUNDARY_EPSILON && lastScrollY < sectionEnd - SCROLL_BOUNDARY_EPSILON && currentScrollY >= sectionEnd) boundaryTarget = sectionEnd;
       else if (lastScrollY <= sectionEnd + SCROLL_BOUNDARY_EPSILON && lastScrollY > sectionStart + SCROLL_BOUNDARY_EPSILON && currentScrollY <= sectionStart) boundaryTarget = sectionStart;
 
       if (boundaryTarget !== undefined) {
         window.scrollTo({ top: boundaryTarget, left: window.scrollX, behavior: 'instant' });
         lastScrollY = boundaryTarget;
-        heldBoundary = boundaryTarget === sectionStart ? 'start' : 'end';
-        heldIntentId = scrollIntentId;
-        stage.dataset.sceneBoundary = heldBoundary;
+        guardRenderedEndpoint(boundaryTarget === sectionStart ? 'start' : 'end');
         applyProgress((boundaryTarget - sectionStart) / scrollRange);
         return;
       }
 
-      delete stage.dataset.sceneBoundary;
       lastScrollY = currentScrollY;
       applyProgress((currentScrollY - sectionStart) / scrollRange);
     };
@@ -334,155 +418,291 @@ export default function StickerSplineScene() {
       if (scrollRaf === undefined) scrollRaf = window.requestAnimationFrame(syncFromScroll);
     };
 
-    const holdAtBoundary = (boundary: 'start' | 'end') => {
-      const boundaryY = boundary === 'start' ? sectionTop : sectionTop + scrollRange;
-      window.scrollTo({ top: boundaryY, left: window.scrollX, behavior: 'instant' });
-      lastScrollY = boundaryY;
-      heldBoundary = boundary;
-      heldIntentId = scrollIntentId;
-      stage.dataset.sceneBoundary = boundary;
-      applyProgress(boundary === 'start' ? 0 : 1);
-    };
-
     const handleWheelIntent = (event: WheelEvent) => {
-      const now = performance.now();
-      const gap = now - lastWheelIntentAt;
-      if (gap > WHEEL_BURST_GAP) scrollIntentId += 1;
-      lastWheelIntentAt = now;
-
-      if (heldBoundary && heldIntentId === scrollIntentId) {
-        event.preventDefault();
-        return;
-      }
-
-      if (heldBoundary && heldIntentId !== scrollIntentId) {
-        heldBoundary = undefined;
-        heldIntentId = undefined;
-        delete stage.dataset.sceneBoundary;
-      }
-
       const deltaMultiplier = event.deltaMode === WheelEvent.DOM_DELTA_LINE
         ? 16
         : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
           ? window.innerHeight
           : 1;
       const deltaY = event.deltaY * deltaMultiplier;
+      if (!Number.isFinite(deltaY) || Math.abs(deltaY) < 0.01) return;
+      if (!event.cancelable) return;
       const sectionStart = sectionTop;
       const sectionEnd = sectionTop + scrollRange;
-      const projectedScrollY = window.scrollY + deltaY;
-      let boundary: 'start' | 'end' | undefined;
+      const currentScrollY = window.scrollY;
+      const projectedScrollY = currentScrollY + deltaY;
 
-      if (deltaY > 0 && window.scrollY < sectionStart - SCROLL_BOUNDARY_EPSILON && projectedScrollY >= sectionEnd) boundary = 'start';
-      else if (deltaY > 0 && window.scrollY >= sectionStart - SCROLL_BOUNDARY_EPSILON && window.scrollY < sectionEnd - SCROLL_BOUNDARY_EPSILON && projectedScrollY >= sectionEnd) boundary = 'end';
-      else if (deltaY < 0 && window.scrollY > sectionEnd + SCROLL_BOUNDARY_EPSILON && projectedScrollY <= sectionStart) boundary = 'end';
-      else if (deltaY < 0 && window.scrollY <= sectionEnd + SCROLL_BOUNDARY_EPSILON && window.scrollY > sectionStart + SCROLL_BOUNDARY_EPSILON && projectedScrollY <= sectionStart) boundary = 'start';
-
-      if (boundary) {
+      // A high-velocity gesture may enter the section, but never jump across
+      // it. The following event begins the scroll-linked sticker sequence.
+      if (deltaY > 0 && currentScrollY < sectionStart - SCROLL_BOUNDARY_EPSILON) {
+        if (projectedScrollY < sectionStart) return;
         event.preventDefault();
-        holdAtBoundary(boundary);
+        pendingWheelDelta = 0;
+        if (wheelRaf !== undefined) window.cancelAnimationFrame(wheelRaf);
+        wheelRaf = undefined;
+        window.scrollTo({ top: sectionStart, left: window.scrollX, behavior: 'instant' });
+        lastScrollY = sectionStart;
+        guardRenderedEndpoint('start');
+        applyProgress(0);
+        return;
+      }
+      if (deltaY < 0 && currentScrollY > sectionEnd + SCROLL_BOUNDARY_EPSILON) {
+        if (projectedScrollY > sectionEnd) return;
+        event.preventDefault();
+        pendingWheelDelta = 0;
+        if (wheelRaf !== undefined) window.cancelAnimationFrame(wheelRaf);
+        wheelRaf = undefined;
+        window.scrollTo({ top: sectionEnd, left: window.scrollX, behavior: 'instant' });
+        lastScrollY = sectionEnd;
+        guardRenderedEndpoint('end');
+        applyProgress(1);
         return;
       }
 
-      // Own wheel movement so Spline never receives a camera-dolly gesture.
-      // Trackpads still supply their native momentum deltas; each delta simply
-      // advances the document instead of altering the scene camera.
+      const insideSection = currentScrollY >= sectionStart - SCROLL_BOUNDARY_EPSILON
+        && currentScrollY <= sectionEnd + SCROLL_BOUNDARY_EPSILON;
+      if (!insideSection) return;
+
+      // Once the authored endpoint is visibly reached, the outward direction
+      // returns to native document scrolling immediately.
+      if ((deltaY < 0 && currentScrollY <= sectionStart + SCROLL_BOUNDARY_EPSILON)
+        || (deltaY > 0 && currentScrollY >= sectionEnd - SCROLL_BOUNDARY_EPSILON)) {
+        const endpoint = deltaY < 0 ? 'start' : 'end';
+        if (boundaryGuard === endpoint && endpointReleaseReady !== endpoint) {
+          event.preventDefault();
+          return;
+        }
+        clearBoundaryGuard();
+        return;
+      }
+
       event.preventDefault();
-      window.scrollTo({ top: window.scrollY + deltaY, left: window.scrollX, behavior: 'instant' });
+      pendingWheelDelta += deltaY;
+      if (wheelRaf !== undefined) return;
+
+      wheelRaf = window.requestAnimationFrame(() => {
+        wheelRaf = undefined;
+        const accumulatedDelta = pendingWheelDelta;
+        pendingWheelDelta = 0;
+        if (Math.abs(accumulatedDelta) < 0.01) return;
+
+        const maxStep = Math.max(120, Math.min(scrollRange * 0.18, window.innerHeight * 0.28));
+        const cappedDelta = Math.sign(accumulatedDelta) * Math.min(Math.abs(accumulatedDelta), maxStep);
+        const targetScrollY = Math.max(sectionStart, Math.min(sectionEnd, window.scrollY + cappedDelta));
+        window.scrollTo({ top: targetScrollY, left: window.scrollX, behavior: 'instant' });
+        lastScrollY = targetScrollY;
+        applyProgress((targetScrollY - sectionStart) / scrollRange);
+
+        if (targetScrollY <= sectionStart + SCROLL_BOUNDARY_EPSILON) guardRenderedEndpoint('start');
+        else if (targetScrollY >= sectionEnd - SCROLL_BOUNDARY_EPSILON) guardRenderedEndpoint('end');
+        else clearBoundaryGuard();
+      });
     };
 
-    const noteTouchIntent = () => {
-      scrollIntentId += 1;
+    const getCurrentRay = () => raycastContext?.raycaster?.ray;
+
+    const pickSticker = (event: PointerEvent): StickerHit | null => {
+      if (!raycastContext?.updateRaycaster || !raycastContext.page?.raycastWithClones || !raycastContext.raycaster) return null;
+      raycastContext.updateRaycaster(event);
+      const hits = raycastContext.page.raycastWithClones(raycastContext.raycaster) ?? [];
+
+      for (const hit of hits) {
+        const candidates = [hit.object, hit.object?.object].filter(Boolean) as RuntimeObject[];
+        for (const candidate of candidates) {
+          const visited = new Set<RuntimeObject>();
+          let object: RuntimeObject | null | undefined = candidate;
+          while (object && !visited.has(object)) {
+            visited.add(object);
+            if (object.uuid) {
+              const track = tracksById.get(object.uuid);
+              if (track && hit.point) return { track, point: copyPoint(hit.point) };
+            }
+            object = object.parent;
+          }
+        }
+      }
+
+      return null;
     };
 
-    const noteKeyboardIntent = (event: KeyboardEvent) => {
-      if (SCROLL_KEYS.has(event.key)) scrollIntentId += 1;
+    const cancelSnap = (trackId: string) => {
+      const frame = snapFrames.get(trackId);
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+      snapFrames.delete(trackId);
     };
 
     const handlePointerDown = (event: PointerEvent) => {
-      const panLayer = panLayerRef.current;
-      if (event.pointerType === 'touch' || event.button !== 0 || !panLayer) return;
-      if (snapTimer !== undefined) {
-        window.clearTimeout(snapTimer);
-        snapTimer = undefined;
-      }
-      const currentPan = readTranslation(panLayer);
-      panLayer.style.transition = 'none';
-      panLayer.style.transform = `translate3d(${currentPan.x}px, ${currentPan.y}px, 0)`;
-      panX = currentPan.x;
-      panY = currentPan.y;
-      activePointerId = event.pointerId;
-      panStartX = event.clientX;
-      panStartY = event.clientY;
-      panOriginX = panX;
-      panOriginY = panY;
+      if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      if (raycastContext) raycastContext.domRect = app.canvas.getBoundingClientRect();
+      const hit = pickSticker(event);
+      const ray = getCurrentRay();
+      if (!hit || !ray) return;
+      const planeNormal = normalizePoint(copyPoint(ray.direction));
+      if (!planeNormal) return;
+      const startIntersection = intersectRayWithPlane(ray, hit.point, planeNormal);
+      if (!startIntersection) return;
+
+      if (pointerMoveRaf !== undefined) window.cancelAnimationFrame(pointerMoveRaf);
+      pointerMoveRaf = undefined;
+      latestPointerMove = undefined;
+      cancelSnap(hit.track.id);
+      const startOffset = copyPoint(dragOffsets.get(hit.track.id) ?? { x: 0, y: 0, z: 0 });
+      activeDrag = {
+        pointerId: event.pointerId,
+        track: hit.track,
+        planePoint: hit.point,
+        planeNormal,
+        startIntersection,
+        startOffset,
+      };
       stage.setPointerCapture(event.pointerId);
       stage.dataset.sceneDragging = 'true';
+      stage.dataset.sceneDraggedSticker = hit.track.id;
       event.preventDefault();
       event.stopPropagation();
+    };
+
+    const processPointerMove = (event: PointerEvent) => {
+      if (!activeDrag || event.pointerId !== activeDrag.pointerId) {
+        if (event.pointerType !== 'touch') {
+          const hoveredSticker = pickSticker(event);
+          stage.dataset.sceneHover = hoveredSticker ? 'true' : 'false';
+          if (hoveredSticker) stage.dataset.sceneHoverSticker = hoveredSticker.track.id;
+          else delete stage.dataset.sceneHoverSticker;
+        }
+        return;
+      }
+
+      raycastContext?.updateRaycaster?.(event);
+      const ray = getCurrentRay();
+      if (!ray) return;
+      const intersection = intersectRayWithPlane(ray, activeDrag.planePoint, activeDrag.planeNormal);
+      if (!intersection) return;
+      const offset = {
+        x: activeDrag.startOffset.x + intersection.x - activeDrag.startIntersection.x,
+        y: activeDrag.startOffset.y + intersection.y - activeDrag.startIntersection.y,
+        z: activeDrag.startOffset.z + intersection.z - activeDrag.startIntersection.z,
+      };
+      dragOffsets.set(activeDrag.track.id, offset);
+      applyTrack(activeDrag.track, Number.isFinite(lastProgress) ? lastProgress : 0, offset);
+      app.requestRender();
+    };
+
+    const flushPointerMove = () => {
+      if (pointerMoveRaf !== undefined) window.cancelAnimationFrame(pointerMoveRaf);
+      pointerMoveRaf = undefined;
+      const event = latestPointerMove;
+      latestPointerMove = undefined;
+      if (event) processPointerMove(event);
     };
 
     const handlePointerMove = (event: PointerEvent) => {
-      if (event.pointerId !== activePointerId || !panLayerRef.current) return;
-      const maxX = Math.min(180, window.innerWidth * 0.14);
-      const maxY = Math.min(110, window.innerHeight * 0.14);
-      panX = Math.max(-maxX, Math.min(maxX, panOriginX + event.clientX - panStartX));
-      panY = Math.max(-maxY, Math.min(maxY, panOriginY + event.clientY - panStartY));
-      panLayerRef.current.style.transform = `translate3d(${panX}px, ${panY}px, 0)`;
-      event.preventDefault();
+      latestPointerMove = event;
+      if (activeDrag && event.pointerId === activeDrag.pointerId) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      if (pointerMoveRaf === undefined) {
+        pointerMoveRaf = window.requestAnimationFrame(() => {
+          pointerMoveRaf = undefined;
+          const latestEvent = latestPointerMove;
+          latestPointerMove = undefined;
+          if (latestEvent) processPointerMove(latestEvent);
+        });
+      }
+    };
+
+    const snapStickerBack = (track: StickerTrack) => {
+      cancelSnap(track.id);
+      const startOffset = copyPoint(dragOffsets.get(track.id) ?? { x: 0, y: 0, z: 0 });
+      if (reducedMotion || Math.hypot(startOffset.x, startOffset.y, startOffset.z) < 0.0001) {
+        dragOffsets.delete(track.id);
+        applyTrack(track, Number.isFinite(lastProgress) ? lastProgress : 0);
+        app.requestRender();
+        return;
+      }
+
+      const startedAt = performance.now();
+      const animateReturn = (now: number) => {
+        const progress = clamp01((now - startedAt) / DRAG_RETURN_DURATION);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const offset = {
+          x: startOffset.x * (1 - eased),
+          y: startOffset.y * (1 - eased),
+          z: startOffset.z * (1 - eased),
+        };
+        if (progress >= 1) dragOffsets.delete(track.id);
+        else dragOffsets.set(track.id, offset);
+        applyTrack(track, Number.isFinite(lastProgress) ? lastProgress : 0, progress >= 1 ? undefined : offset);
+        app.requestRender();
+
+        if (progress < 1) snapFrames.set(track.id, window.requestAnimationFrame(animateReturn));
+        else snapFrames.delete(track.id);
+      };
+      snapFrames.set(track.id, window.requestAnimationFrame(animateReturn));
+    };
+
+    const finishPointerDrag = (event: PointerEvent) => {
+      if (!activeDrag || event.pointerId !== activeDrag.pointerId) return;
+      flushPointerMove();
+      const releasedTrack = activeDrag.track;
+      const releasedOffset = dragOffsets.get(releasedTrack.id);
+      activeDrag = undefined;
+      if (stage.hasPointerCapture(event.pointerId)) stage.releasePointerCapture(event.pointerId);
+      delete stage.dataset.sceneDragging;
+      delete stage.dataset.sceneDraggedSticker;
+      stage.dataset.sceneLastDraggedSticker = releasedTrack.id;
+      stage.dataset.sceneLastDragDistance = Math.hypot(
+        releasedOffset?.x ?? 0,
+        releasedOffset?.y ?? 0,
+        releasedOffset?.z ?? 0,
+      ).toFixed(2);
+      snapStickerBack(releasedTrack);
       event.stopPropagation();
     };
 
-    const finishPointerPan = (event: PointerEvent) => {
-      if (event.pointerId !== activePointerId) return;
-      activePointerId = undefined;
-      if (stage.hasPointerCapture(event.pointerId)) stage.releasePointerCapture(event.pointerId);
-      delete stage.dataset.sceneDragging;
-      const panLayer = panLayerRef.current;
-      if (panLayer) {
-        panLayer.style.transition = reducedMotion
-          ? 'none'
-          : `transform ${PAN_RETURN_DURATION}ms cubic-bezier(0.22, 1, 0.36, 1)`;
-        panLayer.style.transform = `translate3d(${panOriginX}px, ${panOriginY}px, 0)`;
-        panX = panOriginX;
-        panY = panOriginY;
-        snapTimer = window.setTimeout(() => {
-          panLayer.style.transition = 'none';
-          snapTimer = undefined;
-        }, reducedMotion ? 0 : PAN_RETURN_DURATION);
+    const clearHover = () => {
+      if (!activeDrag) {
+        if (pointerMoveRaf !== undefined) window.cancelAnimationFrame(pointerMoveRaf);
+        pointerMoveRaf = undefined;
+        latestPointerMove = undefined;
+        delete stage.dataset.sceneHover;
+        delete stage.dataset.sceneHoverSticker;
       }
-      event.stopPropagation();
     };
 
     const resizeObserver = new ResizeObserver(measure);
     resizeObserver.observe(section);
     window.addEventListener('wheel', handleWheelIntent, { capture: true, passive: false });
-    window.addEventListener('touchstart', noteTouchIntent, { capture: true, passive: true });
-    window.addEventListener('keydown', noteKeyboardIntent, { capture: true });
     window.addEventListener('scroll', requestScrollSync, { passive: true });
     window.addEventListener('resize', measure, { passive: true });
     stage.addEventListener('pointerdown', handlePointerDown, { capture: true });
     stage.addEventListener('pointermove', handlePointerMove, { capture: true });
-    stage.addEventListener('pointerup', finishPointerPan, { capture: true });
-    stage.addEventListener('pointercancel', finishPointerPan, { capture: true });
-    stage.addEventListener('lostpointercapture', finishPointerPan, { capture: true });
+    stage.addEventListener('pointerup', finishPointerDrag, { capture: true });
+    stage.addEventListener('pointercancel', finishPointerDrag, { capture: true });
+    stage.addEventListener('lostpointercapture', finishPointerDrag, { capture: true });
+    stage.addEventListener('pointerleave', clearHover);
 
     const cleanup = () => {
       cancelled = true;
       if (pollTimer !== undefined) window.clearTimeout(pollTimer);
       if (preheatTimer !== undefined) window.clearTimeout(preheatTimer);
-      if (snapTimer !== undefined) window.clearTimeout(snapTimer);
+      snapFrames.forEach((frame) => window.cancelAnimationFrame(frame));
+      snapFrames.clear();
       if (scrollRaf !== undefined) window.cancelAnimationFrame(scrollRaf);
+      if (wheelRaf !== undefined) window.cancelAnimationFrame(wheelRaf);
+      if (endpointPaintRaf !== undefined) window.cancelAnimationFrame(endpointPaintRaf);
+      if (pointerMoveRaf !== undefined) window.cancelAnimationFrame(pointerMoveRaf);
       resizeObserver.disconnect();
       window.removeEventListener('wheel', handleWheelIntent, { capture: true });
-      window.removeEventListener('touchstart', noteTouchIntent, { capture: true });
-      window.removeEventListener('keydown', noteKeyboardIntent, { capture: true });
       window.removeEventListener('scroll', requestScrollSync);
       window.removeEventListener('resize', measure);
       stage.removeEventListener('pointerdown', handlePointerDown, { capture: true });
       stage.removeEventListener('pointermove', handlePointerMove, { capture: true });
-      stage.removeEventListener('pointerup', finishPointerPan, { capture: true });
-      stage.removeEventListener('pointercancel', finishPointerPan, { capture: true });
-      stage.removeEventListener('lostpointercapture', finishPointerPan, { capture: true });
+      stage.removeEventListener('pointerup', finishPointerDrag, { capture: true });
+      stage.removeEventListener('pointercancel', finishPointerDrag, { capture: true });
+      stage.removeEventListener('lostpointercapture', finishPointerDrag, { capture: true });
+      stage.removeEventListener('pointerleave', clearHover);
     };
 
     cleanupRef.current = cleanup;
@@ -500,6 +720,7 @@ export default function StickerSplineScene() {
         if (pollCount < READY_POLL_LIMIT) {
           pollTimer = window.setTimeout(initializeWhenReady, READY_POLL_INTERVAL);
         } else {
+          cleanup();
           setIsLoaded(true);
           dispatchSceneStatus('mc:spline-error');
         }
@@ -507,7 +728,10 @@ export default function StickerSplineScene() {
       }
 
       tracks = resolvedTracks.filter((track): track is StickerTrack => track !== null);
-      getEventManager(app)?.pause?.();
+      tracksById = new Map(tracks.map((track) => [track.id, track]));
+      const eventManager = getEventManager(app);
+      raycastContext = eventManager?.eventContext;
+      eventManager?.pause?.();
 
       const backdrop = app.findObjectByName('Backdrop');
       if (backdrop?.visible) backdrop.hide();
@@ -519,11 +743,11 @@ export default function StickerSplineScene() {
       app.setBackgroundColor('#cb9933');
       const orbitControls = getOrbitControls(app);
       if (orbitControls) {
+        orbitControls.enabled = false;
         orbitControls.enableZoom = false;
         orbitControls.isTouchZoom = false;
-        orbitControls.enablePan = true;
-        orbitControls.enableRotate = true;
-        if (Array.isArray(orbitControls.mouseButtons)) orbitControls.mouseButtons[0] = 3;
+        orbitControls.enablePan = false;
+        orbitControls.enableRotate = false;
         orbitControls.update?.();
       }
       app.canvas.style.touchAction = 'pan-y pinch-zoom';
@@ -573,11 +797,11 @@ export default function StickerSplineScene() {
   }, []);
 
   return (
-    <section ref={sectionRef} data-sticker-scene-section className="relative h-[240vh] bg-lab-gold text-lab-black motion-reduce:h-screen">
-      <div ref={stageRef} className="sticky top-0 h-screen cursor-grab overflow-hidden bg-lab-gold data-[scene-dragging=true]:cursor-grabbing">
-        <div ref={panLayerRef} className="absolute inset-0 will-change-transform">
+    <section ref={sectionRef} data-sticker-scene-section className="relative h-[300vh] bg-lab-gold text-lab-black motion-reduce:h-screen">
+      <div ref={stageRef} className="sticky top-0 h-screen cursor-default overflow-hidden bg-lab-gold data-[scene-dragging=true]:cursor-grabbing data-[scene-hover=true]:cursor-grab">
+        <div className="absolute inset-0">
           <div
-            className="absolute inset-0 origin-center translate-x-[22vw] scale-[1.14] will-change-transform sm:translate-x-[32vw] sm:scale-[1.3]"
+            className="absolute inset-0 origin-center translate-x-[18vw] scale-[1.18] will-change-transform sm:translate-x-[27vw] sm:scale-[1.36]"
           >
           {!isLoaded && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-lab-gold" role="status">
