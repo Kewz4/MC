@@ -115,6 +115,16 @@ h4.font-display {
     scroll-behavior: smooth;
   }
 
+  html[data-mc-floating-scrollbar="true"] {
+    scrollbar-width: none;
+  }
+
+  html[data-mc-floating-scrollbar="true"]::-webkit-scrollbar {
+    display: none;
+    height: 0;
+    width: 0;
+  }
+
   body {
     @apply m-0 bg-lab-white text-lab-black font-sans antialiased;
     min-width: 320px;
@@ -143,6 +153,19 @@ h4.font-display {
   ::selection {
     background: var(--color-lab-red);
     color: white;
+  }
+
+}
+
+@media (forced-colors: active) {
+  html {
+    scrollbar-color: auto;
+  }
+}
+
+@media print {
+  [data-floating-scrollbar] {
+    display: none !important;
   }
 }
 

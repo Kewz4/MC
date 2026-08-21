@@ -4,7 +4,8 @@ import {
   ArrowRight,
   FlaskConical,
   Zap,
-  Shirt
+  Shirt,
+  X
 } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -44,14 +45,17 @@ const HexagonStep = ({ step, title, text, color, delay = 0 }: { step: string; ti
   const isDark = color === 'var(--color-lab-red)' || color === 'var(--color-lab-black)';
 
   return (
-    <motion.div
+    <motion.button
+      type="button"
+      aria-expanded={isExpanded}
+      aria-label={`${step} ${title}: ${isExpanded ? 'hide' : 'show'} details`}
       initial={{ opacity: 0, scale: 0.8 }}
       whileInView={{ opacity: 1, scale: 1 }}
       transition={{ delay, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      className="relative group cursor-pointer"
+      className="group relative appearance-none border-0 bg-transparent p-0 text-inherit"
       onClick={() => setIsExpanded(!isExpanded)}
     >
-      <div className="relative w-64 h-72 flex items-center justify-center">
+      <div className="relative flex h-[19rem] w-[min(82vw,17rem)] items-center justify-center sm:h-80 sm:w-72 lg:h-72 lg:w-64">
         <svg viewBox="0 0 100 115" className="absolute inset-0 w-full h-full drop-shadow-2xl transition-all duration-500 group-hover:scale-110">
           <path
             d="M50 0 L93.3 25 L93.3 75 L50 100 L6.7 75 L6.7 25 Z"
@@ -65,23 +69,24 @@ const HexagonStep = ({ step, title, text, color, delay = 0 }: { step: string; ti
             strokeWidth="0.5"
           />
         </svg>
-        <div className={`relative z-10 text-center p-10 flex flex-col items-center justify-center transition-colors duration-500 ${isDark ? 'text-white' : 'text-lab-black'}`}>
-          <span className="font-impact text-2xl uppercase tracking-tighter mb-2">{step}</span>
-          <h4 className="font-accent text-[11px] font-bold uppercase tracking-[0.14em] mb-4 leading-tight">{title}</h4>
-          <div className="max-w-[180px]">
+        <div className={`relative z-10 flex max-w-[13.5rem] flex-col items-center justify-center px-8 pb-14 pt-5 text-center transition-colors duration-500 sm:px-10 ${isDark ? 'text-white' : 'text-lab-black'}`}>
+          <span className="mb-2 font-impact text-xl uppercase tracking-[-0.01em] sm:text-2xl">{step}</span>
+          <h4 className="mb-3 max-w-[17ch] font-accent text-[10px] font-bold uppercase leading-[1.3] tracking-[0.11em] sm:text-[11px]">{title}</h4>
+          <div className="max-w-[17rem]">
             <motion.p
               animate={{ opacity: isExpanded ? 1 : 0, height: isExpanded ? 'auto' : 0 }}
-              className="font-sans font-bold text-[12px] uppercase tracking-widest leading-relaxed overflow-hidden text-center"
+              transition={{ duration: 0.24, ease: 'easeOut' }}
+              className="overflow-hidden text-center font-sans text-[11px] font-semibold leading-[1.5] tracking-[0.025em] sm:text-xs"
             >
               {text}
             </motion.p>
           </div>
           {!isExpanded && (
-            <span className="font-sans font-bold text-[9px] uppercase tracking-widest opacity-40 mt-2 group-hover:opacity-100 transition-opacity">Click to Expand</span>
+            <span className="mt-2 font-sans text-[9px] font-bold uppercase tracking-[0.14em] opacity-45 transition-opacity group-hover:opacity-100">View details</span>
           )}
         </div>
       </div>
-    </motion.div>
+    </motion.button>
   );
 };
 
@@ -148,14 +153,24 @@ const InteractiveLab = () => {
   const geometryRef = useRef<LabGeometry>({ left: 0, top: 0, width: 0, height: 0, size: 220, zoom: 2.25 });
   const latestPointRef = useRef<{ x: number; y: number } | null>(null);
   const frameRef = useRef<number | null>(null);
+  const positionFrameRef = useRef<number | null>(null);
+  const touchPointerRef = useRef<number | null>(null);
+  const lensVisibleRef = useRef(false);
   const supportsHoverRef = useRef(false);
   const activeHotspotRef = useRef<number | null>(null);
 
   const activeSpot = LAB_HOTSPOTS.find((spot) => spot.id === activeHotspot) ?? null;
 
   const setLensVisible = useCallback((isVisible: boolean) => {
+    lensVisibleRef.current = isVisible;
     if (lensRef.current) lensRef.current.style.opacity = isVisible ? '1' : '0';
   }, []);
+
+  const dismissHotspot = useCallback((hideLens = false) => {
+    activeHotspotRef.current = null;
+    setActiveHotspot(null);
+    if (hideLens || !supportsHoverRef.current) setLensVisible(false);
+  }, [setLensVisible]);
 
   const measureLab = useCallback(() => {
     const container = containerRef.current;
@@ -166,8 +181,10 @@ const InteractiveLab = () => {
       top: rect.top,
       width: rect.width,
       height: rect.height,
-      size: Math.min(240, Math.max(170, rect.width * 0.18)),
-      zoom: rect.width < 720 ? 2 : 2.25
+      size: rect.width < 720
+        ? Math.min(144, Math.max(116, rect.width * 0.36))
+        : Math.min(220, Math.max(170, rect.width * 0.17)),
+      zoom: rect.width < 720 ? 1.85 : 2.15
     };
     geometryRef.current = geometry;
 
@@ -205,6 +222,14 @@ const InteractiveLab = () => {
     });
   }, [drawLens]);
 
+  const syncLabPosition = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    geometryRef.current.left = rect.left;
+    geometryRef.current.top = rect.top;
+  }, []);
+
   useEffect(() => {
     const mediaQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
     const syncHoverSupport = () => {
@@ -213,6 +238,17 @@ const InteractiveLab = () => {
     };
     syncHoverSupport();
     mediaQuery.addEventListener('change', syncHoverSupport);
+    const handlePageScroll = () => {
+      if (activeHotspotRef.current !== null) dismissHotspot(!supportsHoverRef.current);
+      if (!supportsHoverRef.current) setLensVisible(false);
+      if (!lensVisibleRef.current) return;
+      if (positionFrameRef.current !== null) return;
+      positionFrameRef.current = requestAnimationFrame(() => {
+        positionFrameRef.current = null;
+        syncLabPosition();
+      });
+    };
+    window.addEventListener('scroll', handlePageScroll, { passive: true });
     const resizeObserver = typeof ResizeObserver === 'undefined'
       ? null
       : new ResizeObserver(() => {
@@ -225,29 +261,57 @@ const InteractiveLab = () => {
 
     return () => {
       mediaQuery.removeEventListener('change', syncHoverSupport);
+      window.removeEventListener('scroll', handlePageScroll);
       resizeObserver?.disconnect();
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+      if (positionFrameRef.current !== null) cancelAnimationFrame(positionFrameRef.current);
     };
-  }, [drawLens, measureLab, setLensVisible]);
+  }, [dismissHotspot, drawLens, measureLab, setLensVisible, syncLabPosition]);
 
   const focusHotspot = (spot: LabHotspot) => {
     const geometry = measureLab();
     if (!geometry) return;
     drawLens((spot.x / 100) * geometry.width, (spot.y / 100) * geometry.height);
-    if (supportsHoverRef.current) setLensVisible(true);
+    setLensVisible(true);
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!supportsHoverRef.current || activeHotspotRef.current !== null) return;
+    const isTouchInspection = touchPointerRef.current === event.pointerId;
+    if ((!supportsHoverRef.current && !isTouchInspection) || activeHotspotRef.current !== null) return;
     const geometry = geometryRef.current;
     queueLensDraw(event.clientX - geometry.left, event.clientY - geometry.top);
+  };
+
+  const beginTouchInspection = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (supportsHoverRef.current || event.pointerType === 'mouse') return;
+    const target = event.target as HTMLElement;
+    if (target.closest('button, [data-lab-hotspot-detail]')) return;
+
+    dismissHotspot(false);
+    const geometry = measureLab();
+    if (!geometry) return;
+    touchPointerRef.current = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    queueLensDraw(event.clientX - geometry.left, event.clientY - geometry.top);
+    setLensVisible(true);
+  };
+
+  const endTouchInspection = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (touchPointerRef.current !== event.pointerId) return;
+    touchPointerRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
 
   return (
     <div
       className="group relative aspect-[16/10] w-full touch-pan-y overflow-hidden bg-lab-black md:cursor-crosshair lg:aspect-video"
       ref={containerRef}
+      onPointerDown={beginTouchInspection}
       onPointerMove={handlePointerMove}
+      onPointerUp={endTouchInspection}
+      onPointerCancel={endTouchInspection}
       onPointerEnter={(event) => {
         if (event.pointerType !== 'mouse' || !supportsHoverRef.current) return;
         const geometry = measureLab();
@@ -256,7 +320,7 @@ const InteractiveLab = () => {
         setLensVisible(true);
       }}
       onPointerLeave={() => {
-        if (activeHotspotRef.current === null) setLensVisible(false);
+        if (supportsHoverRef.current && activeHotspotRef.current === null) setLensVisible(false);
       }}
     >
 
@@ -265,10 +329,9 @@ const InteractiveLab = () => {
         alt="Merchcraft Apparel Lab Showroom"
         className="h-full w-full object-cover opacity-90 transition duration-700 group-hover:opacity-100"
         referrerPolicy="no-referrer"
+        draggable={false}
         onClick={() => {
-          activeHotspotRef.current = null;
-          setActiveHotspot(null);
-          if (!supportsHoverRef.current) setLensVisible(false);
+          if (supportsHoverRef.current) dismissHotspot(false);
         }}
       />
 
@@ -310,7 +373,7 @@ const InteractiveLab = () => {
       <div
         ref={lensRef}
         aria-hidden="true"
-        className="pointer-events-none absolute left-0 top-0 z-40 hidden overflow-hidden rounded-full border-2 border-white/35 opacity-0 shadow-[0_16px_48px_rgba(0,0,0,0.45)] transition-opacity duration-100 will-change-[transform,opacity] motion-reduce:transition-none md:block"
+        className="pointer-events-none absolute left-0 top-0 z-40 block overflow-hidden rounded-full border-2 border-white/45 opacity-0 shadow-[0_16px_40px_rgba(0,0,0,0.42)] transition-opacity duration-75 will-change-[transform,opacity] motion-reduce:transition-none"
         style={{ width: 220, height: 220, contain: 'layout paint style' }}
       >
         <img
@@ -331,7 +394,7 @@ const InteractiveLab = () => {
 
       <div className="pointer-events-none absolute left-1/2 top-4 z-20 -translate-x-1/2 rounded-full border border-white/15 bg-lab-black/65 px-4 py-2 font-accent text-[11px] font-semibold text-white shadow-lg backdrop-blur-md">
         <span className="hidden md:inline">Move to inspect · select a marker</span>
-        <span className="md:hidden">Tap a marker to explore</span>
+        <span className="md:hidden">Tap or drag to inspect</span>
       </div>
 
       <AnimatePresence>
@@ -343,20 +406,18 @@ const InteractiveLab = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 14 }}
             transition={{ duration: 0.24 }}
+            data-lab-hotspot-detail
             className="absolute bottom-4 left-4 right-4 z-50 border border-lab-line bg-white p-5 shadow-2xl sm:right-auto sm:w-[min(24rem,calc(100%-2rem))] md:bottom-6 md:left-6 md:p-6"
           >
             <div className="mb-3 flex items-center justify-between gap-4">
               <span className="font-accent text-[11px] font-bold uppercase tracking-[0.14em] text-lab-red">Selected area {String(activeSpot.id).padStart(2, '0')}</span>
               <button
                 type="button"
-                onClick={() => {
-                  activeHotspotRef.current = null;
-                  setActiveHotspot(null);
-                  if (!supportsHoverRef.current) setLensVisible(false);
-                }}
-                className="min-h-11 rounded-full px-3 font-sans text-xs font-bold uppercase tracking-widest text-lab-black/60 transition hover:text-lab-red"
+                aria-label="Close selected showroom area"
+                onClick={() => dismissHotspot(false)}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-lab-black/15 bg-lab-white text-lab-black transition hover:border-lab-red hover:bg-lab-red hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lab-red"
               >
-                Close
+                <X className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
             <h4 className="font-accent text-xl font-semibold leading-tight text-lab-black">{activeSpot.title}</h4>
@@ -800,8 +861,8 @@ export default function HomePage() {
           <div className="flex flex-col lg:flex-row justify-between items-center gap-20 relative z-10">
             <HexagonStep
               step="Step 1."
-              title="Submit Your Brand Logos & Assets"
-              text="Upload your vector files and design guidelines to our secure portal for initial review."
+              title="Send Your Artwork"
+              text="Share your logo, art files, and project notes."
               color="var(--color-lab-red)"
             />
             <div className="hidden lg:flex gap-4">
@@ -811,8 +872,8 @@ export default function HomePage() {
             </div>
             <HexagonStep
               step="Step 2."
-              title="We'll Create A Catalogue Tailored For You"
-              text="Our design team engineers a custom collection based on your brand identity and goals."
+              title="Build Your Collection"
+              text="We shape the right garments, decoration, and finish options."
               color="var(--color-lab-gold)"
               delay={0.2}
             />
@@ -823,8 +884,8 @@ export default function HomePage() {
             </div>
             <HexagonStep
               step="Step 3."
-              title="Place Your Order & Enter Production"
-              text="Approve your digital proofs and we move into physical manufacturing immediately."
+              title="Approve & Produce"
+              text="Approve the proof, then we schedule and produce your order."
               color="#FFFFFF"
               delay={0.4}
             />
@@ -848,8 +909,8 @@ export default function HomePage() {
         />
 
         <div className="max-w-7xl mx-auto mb-16 relative z-20">
-          <div className="flex flex-col md:flex-row justify-between items-end gap-10">
-            <div className="max-w-xl">
+          <div className="flex flex-col items-start justify-between gap-10 md:flex-row md:items-end">
+            <div className="max-w-xl text-left">
               <span className="font-accent text-[12px] font-bold text-lab-red uppercase tracking-[0.14em] mb-6 block">The Showroom</span>
               <h2 className="font-impact text-6xl font-normal uppercase tracking-[0.01em] leading-[0.95] md:text-7xl">Lab<br />Showroom.</h2>
             </div>
@@ -942,8 +1003,8 @@ export default function HomePage() {
 
       {/* Selected Works - Minimal Grid */}
       <section className="py-24 px-8">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-10">
-          <div className="max-w-xl">
+        <div className="mb-16 flex flex-col items-start justify-between gap-10 md:flex-row md:items-end">
+          <div className="max-w-xl text-left">
             <span className="font-accent text-[12px] font-bold text-lab-red uppercase tracking-[0.14em] mb-6 block">Portfolio</span>
             <h2 className="font-impact text-6xl font-normal uppercase tracking-[0.01em] leading-[0.95] md:text-7xl">Recent<br />Work.</h2>
           </div>

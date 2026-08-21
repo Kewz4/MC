@@ -130,6 +130,9 @@ const DESKTOP_SCENE_ZOOM = 2.25;
 const MOBILE_SCENE_ZOOM = 1.72;
 const DEGREES_TO_RADIANS = Math.PI / 180;
 const SCROLL_BOUNDARY_EPSILON = 1;
+const WHEEL_SMOOTHING_TIME = 32;
+const WHEEL_TRAVERSAL_TIME = 520;
+const WHEEL_SETTLE_EPSILON = 0.35;
 
 // These are the authored Base and State transforms. The two original full-spin
 // paths have been normalized to their equivalent shortest angles so the front
@@ -305,7 +308,9 @@ export default function StickerSplineScene() {
     let sectionTop = 0;
     let scrollRange = 1;
     let lastScrollY = window.scrollY;
-    let pendingWheelDelta = 0;
+    let wheelTargetY = window.scrollY;
+    let wheelDirection = 0;
+    let lastWheelFrameAt = 0;
     let boundaryGuard: 'start' | 'end' | undefined;
     let endpointReleaseReady: 'start' | 'end' | undefined;
     let lastProgress = Number.NaN;
@@ -354,7 +359,91 @@ export default function StickerSplineScene() {
       });
     };
 
+    const cancelWheelMotion = (targetY = window.scrollY) => {
+      if (wheelRaf !== undefined) window.cancelAnimationFrame(wheelRaf);
+      wheelRaf = undefined;
+      wheelTargetY = targetY;
+      wheelDirection = 0;
+      lastWheelFrameAt = 0;
+    };
+
+    const applyOwnedScroll = (targetY: number) => {
+      const sectionStart = sectionTop;
+      const sectionEnd = sectionTop + scrollRange;
+      const clampedTarget = Math.max(sectionStart, Math.min(sectionEnd, targetY));
+      window.scrollTo({ top: clampedTarget, left: window.scrollX, behavior: 'instant' });
+      lastScrollY = clampedTarget;
+      applyProgress((clampedTarget - sectionStart) / scrollRange);
+
+      const endpoint = clampedTarget <= sectionStart + SCROLL_BOUNDARY_EPSILON
+        ? 'start'
+        : clampedTarget >= sectionEnd - SCROLL_BOUNDARY_EPSILON
+          ? 'end'
+          : undefined;
+      if (endpoint) {
+        if (boundaryGuard !== endpoint) guardRenderedEndpoint(endpoint);
+      } else if (boundaryGuard) {
+        clearBoundaryGuard();
+      }
+    };
+
+    const runWheelMotion = (now: number) => {
+      wheelRaf = undefined;
+      const currentScrollY = window.scrollY;
+      const distance = wheelTargetY - currentScrollY;
+
+      if (Math.abs(distance) <= WHEEL_SETTLE_EPSILON) {
+        applyOwnedScroll(wheelTargetY);
+        wheelDirection = 0;
+        lastWheelFrameAt = 0;
+        return;
+      }
+
+      const elapsed = lastWheelFrameAt > 0
+        ? Math.max(8, Math.min(34, now - lastWheelFrameAt))
+        : 1000 / 60;
+      lastWheelFrameAt = now;
+      const response = 1 - Math.exp(-elapsed / WHEEL_SMOOTHING_TIME);
+      const maxVelocity = Math.max(1.2, scrollRange / WHEEL_TRAVERSAL_TIME);
+      const easedStep = distance * response;
+      const step = Math.sign(distance) * Math.min(Math.abs(distance), Math.abs(easedStep), maxVelocity * elapsed);
+      const nextScrollY = Math.abs(distance - step) <= WHEEL_SETTLE_EPSILON
+        ? wheelTargetY
+        : currentScrollY + step;
+
+      applyOwnedScroll(nextScrollY);
+      if (nextScrollY === wheelTargetY) {
+        wheelDirection = 0;
+        lastWheelFrameAt = 0;
+      } else {
+        wheelRaf = window.requestAnimationFrame(runWheelMotion);
+      }
+    };
+
+    const queueWheelMotion = (deltaY: number) => {
+      const direction = Math.sign(deltaY);
+      const currentScrollY = window.scrollY;
+
+      // Reversing direction discards queued momentum so the stickers respond
+      // to the new gesture on the very next painted frame.
+      if (wheelRaf === undefined || direction !== wheelDirection) {
+        wheelTargetY = currentScrollY;
+        lastWheelFrameAt = 0;
+      }
+      wheelDirection = direction;
+
+      // Limit one input impulse, but retain same-direction input in the target.
+      // The render loop then traverses that target continuously instead of
+      // jumping one large, fixed chunk per animation frame.
+      const maxImpulse = Math.max(96, Math.min(scrollRange * 0.14, window.innerHeight * 0.22));
+      const boundedDelta = direction * Math.min(Math.abs(deltaY), maxImpulse);
+      wheelTargetY = Math.max(sectionTop, Math.min(sectionTop + scrollRange, wheelTargetY + boundedDelta));
+
+      if (wheelRaf === undefined) wheelRaf = window.requestAnimationFrame(runWheelMotion);
+    };
+
     const measure = () => {
+      cancelWheelMotion();
       const rect = section.getBoundingClientRect();
       sectionTop = rect.top + window.scrollY;
       scrollRange = Math.max(1, section.offsetHeight - window.innerHeight);
@@ -437,9 +526,7 @@ export default function StickerSplineScene() {
       if (deltaY > 0 && currentScrollY < sectionStart - SCROLL_BOUNDARY_EPSILON) {
         if (projectedScrollY < sectionStart) return;
         event.preventDefault();
-        pendingWheelDelta = 0;
-        if (wheelRaf !== undefined) window.cancelAnimationFrame(wheelRaf);
-        wheelRaf = undefined;
+        cancelWheelMotion(sectionStart);
         window.scrollTo({ top: sectionStart, left: window.scrollX, behavior: 'instant' });
         lastScrollY = sectionStart;
         guardRenderedEndpoint('start');
@@ -449,9 +536,7 @@ export default function StickerSplineScene() {
       if (deltaY < 0 && currentScrollY > sectionEnd + SCROLL_BOUNDARY_EPSILON) {
         if (projectedScrollY > sectionEnd) return;
         event.preventDefault();
-        pendingWheelDelta = 0;
-        if (wheelRaf !== undefined) window.cancelAnimationFrame(wheelRaf);
-        wheelRaf = undefined;
+        cancelWheelMotion(sectionEnd);
         window.scrollTo({ top: sectionEnd, left: window.scrollX, behavior: 'instant' });
         lastScrollY = sectionEnd;
         guardRenderedEndpoint('end');
@@ -473,30 +558,12 @@ export default function StickerSplineScene() {
           return;
         }
         clearBoundaryGuard();
+        cancelWheelMotion(currentScrollY);
         return;
       }
 
       event.preventDefault();
-      pendingWheelDelta += deltaY;
-      if (wheelRaf !== undefined) return;
-
-      wheelRaf = window.requestAnimationFrame(() => {
-        wheelRaf = undefined;
-        const accumulatedDelta = pendingWheelDelta;
-        pendingWheelDelta = 0;
-        if (Math.abs(accumulatedDelta) < 0.01) return;
-
-        const maxStep = Math.max(120, Math.min(scrollRange * 0.18, window.innerHeight * 0.28));
-        const cappedDelta = Math.sign(accumulatedDelta) * Math.min(Math.abs(accumulatedDelta), maxStep);
-        const targetScrollY = Math.max(sectionStart, Math.min(sectionEnd, window.scrollY + cappedDelta));
-        window.scrollTo({ top: targetScrollY, left: window.scrollX, behavior: 'instant' });
-        lastScrollY = targetScrollY;
-        applyProgress((targetScrollY - sectionStart) / scrollRange);
-
-        if (targetScrollY <= sectionStart + SCROLL_BOUNDARY_EPSILON) guardRenderedEndpoint('start');
-        else if (targetScrollY >= sectionEnd - SCROLL_BOUNDARY_EPSILON) guardRenderedEndpoint('end');
-        else clearBoundaryGuard();
-      });
+      queueWheelMotion(deltaY);
     };
 
     const getCurrentRay = () => raycastContext?.raycaster?.ray;
@@ -690,7 +757,7 @@ export default function StickerSplineScene() {
       snapFrames.forEach((frame) => window.cancelAnimationFrame(frame));
       snapFrames.clear();
       if (scrollRaf !== undefined) window.cancelAnimationFrame(scrollRaf);
-      if (wheelRaf !== undefined) window.cancelAnimationFrame(wheelRaf);
+      cancelWheelMotion();
       if (endpointPaintRaf !== undefined) window.cancelAnimationFrame(endpointPaintRaf);
       if (pointerMoveRaf !== undefined) window.cancelAnimationFrame(pointerMoveRaf);
       resizeObserver.disconnect();
@@ -797,7 +864,7 @@ export default function StickerSplineScene() {
   }, []);
 
   return (
-    <section ref={sectionRef} data-sticker-scene-section className="relative h-[300vh] bg-lab-gold text-lab-black motion-reduce:h-screen">
+    <section id="sticker-scene" ref={sectionRef} data-sticker-scene-section className="relative h-[300vh] bg-lab-gold text-lab-black motion-reduce:h-screen">
       <div ref={stageRef} className="sticky top-0 h-screen cursor-default overflow-hidden bg-lab-gold data-[scene-dragging=true]:cursor-grabbing data-[scene-hover=true]:cursor-grab">
         <div className="absolute inset-0">
           <div
@@ -822,14 +889,24 @@ export default function StickerSplineScene() {
           </div>
         </div>
 
-        <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(90deg,rgba(203,153,51,0.92)_0%,rgba(203,153,51,0.62)_28%,rgba(203,153,51,0)_62%)]" />
+        <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(203,153,51,0.98)_0%,rgba(203,153,51,0.9)_52%,rgba(203,153,51,0.22)_78%,rgba(203,153,51,0)_100%)] sm:bg-[linear-gradient(90deg,rgba(203,153,51,0.96)_0%,rgba(203,153,51,0.82)_38%,rgba(203,153,51,0.18)_58%,rgba(203,153,51,0)_72%)]" />
 
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 mx-auto flex h-full max-w-7xl items-start px-6 pt-28 sm:px-8 sm:pt-32 lg:px-10 lg:pt-36">
-          <div>
-            <p className="font-accent text-xs font-bold uppercase tracking-[0.18em] text-lab-red sm:text-sm">Custom stickers</p>
-            <h2 className="mt-3 max-w-[7ch] font-display text-[clamp(4.5rem,10vw,10.5rem)] font-bold uppercase leading-[0.78] tracking-[-0.045em]">
-              Make it<br />stick.
+        <div className="pointer-events-none absolute inset-0 z-20 mx-auto flex h-full max-w-7xl items-start px-5 pb-8 pt-[clamp(5rem,15vh,8rem)] sm:px-8 lg:px-10">
+          <div className="w-full max-w-[44rem]">
+            <p className="font-accent text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-lab-red sm:text-xs lg:text-sm">Custom stickers</p>
+            <h2
+              className="mt-3 font-bold uppercase text-[clamp(4.25rem,min(8.25vw,16vh),10rem)]"
+              style={{ fontFamily: 'var(--font-display)', lineHeight: 0.84, letterSpacing: '-0.045em' }}
+            >
+              <span className="block whitespace-nowrap">Make it</span>
+              <span className="block whitespace-nowrap">stick.</span>
             </h2>
+            <div className="mt-6 flex max-w-2xl items-start gap-3 sm:gap-4 lg:mt-8">
+              <span className="mt-[0.72em] h-0.5 w-8 shrink-0 bg-lab-red sm:w-11" aria-hidden="true" />
+              <p className="max-w-[40ch] font-sans text-sm font-medium leading-[1.65] text-lab-black/72 sm:text-base lg:text-lg">
+                Custom stickers for packaging, product drops, events, and every place your brand deserves to stand out.
+              </p>
+            </div>
           </div>
         </div>
       </div>

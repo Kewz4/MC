@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
+import BrandedScrollbar from './components/BrandedScrollbar';
 import SiteFooter from './components/SiteFooter';
 import SiteHeader from './components/SiteHeader';
 import StickerScenePreheat from './components/StickerScenePreheat';
@@ -75,6 +76,7 @@ function PageRoutes() {
     <>
       <RouteEffects />
       {location.pathname === '/stickers' && <StickerScenePreheat />}
+      <BrandedScrollbar />
       <SiteHeader />
       <Routes>
         <Route path="/" element={<HomePage />} />
