@@ -84,6 +84,8 @@ export default function QuotePage() {
   const [status, setStatus] = useState<SubmitStatus>('idle');
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
   const successHeadingRef = useRef<HTMLHeadingElement>(null);
+  const progressNavRef = useRef<HTMLElement>(null);
+  const progressButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
     const requestedService = searchParams.get('service');
@@ -94,7 +96,17 @@ export default function QuotePage() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (step > 0) stepHeadingRef.current?.focus();
+    const focusTimer = window.setTimeout(() => {
+      if (step > 0) stepHeadingRef.current?.focus();
+    }, 280);
+    const nav = progressNavRef.current;
+    const activeButton = progressButtonRefs.current[step];
+    if (!nav || !activeButton) return () => window.clearTimeout(focusTimer);
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const left = activeButton.offsetLeft - (nav.clientWidth - activeButton.offsetWidth) / 2;
+    nav.scrollTo({ left: Math.max(0, left), behavior: reducedMotion ? 'auto' : 'smooth' });
+    return () => window.clearTimeout(focusTimer);
   }, [step]);
 
   useEffect(() => {
@@ -211,7 +223,7 @@ export default function QuotePage() {
   return (
     <main className="overflow-hidden bg-white">
       <section className="bg-lab-black px-6 pb-16 pt-32 text-white sm:px-8 lg:px-10 lg:pb-24 lg:pt-40">
-        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+        <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-[1.05fr_0.95fr] md:items-center md:gap-8 lg:gap-12">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}>
             <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">Request a quote</p>
             <h1 className="mt-7 font-display text-[clamp(4rem,8vw,8.5rem)] font-bold uppercase leading-[0.84] tracking-tighter">Tell us what<br />you’re <span className="font-display normal-case text-lab-gold">making.</span></h1>
@@ -227,9 +239,10 @@ export default function QuotePage() {
         <div className="mx-auto max-w-7xl">
           <div className="mb-10 border-b border-lab-line">
             <div className="h-1 bg-lab-line"><motion.div animate={{ width: `${((step + 1) / steps.length) * 100}%` }} transition={{ duration: 0.3 }} className="h-full bg-lab-red" /></div>
-            <nav aria-label="Quote progress" className="no-scrollbar flex overflow-x-auto">
+            <nav ref={progressNavRef} aria-label="Quote progress" className="no-scrollbar flex overflow-x-auto">
               {steps.map((item, index) => (
                 <button
+                  ref={(element) => { progressButtonRefs.current[index] = element; }}
                   key={item.title}
                   type="button"
                   disabled={index > step}

@@ -1,5 +1,5 @@
 import { type ChangeEvent, type FormEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowRight, Check, FileUp, Mail, Send, Sparkles } from 'lucide-react';
+import { ArrowDown, ArrowRight, Check, ChevronDown, FileUp, Mail, Send, Sparkles } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Link } from 'react-router-dom';
@@ -124,6 +124,31 @@ function SelectTile({
         {checked && <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />}
       </span>
     </label>
+  );
+}
+
+function StickerBriefSummary({ quote, sizeLabel }: { quote: StickerQuote; sizeLabel: string }) {
+  return (
+    <div className="bg-lab-black p-7 text-white sm:p-8">
+      <p className="font-accent text-[11px] font-bold uppercase tracking-[0.14em] text-lab-gold">Request summary</p>
+      <h3 className="mt-5 font-display text-3xl font-bold uppercase tracking-tight">Your sticker brief</h3>
+      <dl className="mt-7">
+        {[
+          ['Quantity', quote.quantity || 'Not set'],
+          ['Designs', quote.designCount || 'Not set'],
+          ['Size', sizeLabel],
+          ['Format', quote.shape],
+          ['Surface', quote.surface],
+          ['Artwork', quote.artworkStatus || 'Not set'],
+        ].map(([label, value]) => (
+          <div key={label} className="grid grid-cols-[82px_minmax(0,1fr)] gap-4 border-b border-white/14 py-4">
+            <dt className="text-xs font-semibold text-white/45">{label}</dt>
+            <dd className="min-w-0 break-words text-xs font-semibold leading-relaxed text-white/78">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-6 text-xs font-medium leading-relaxed text-white/48">A working summary only. Final specifications and pricing are confirmed by Merchcraft.</p>
+    </div>
   );
 }
 
@@ -415,7 +440,7 @@ export default function StickersPage() {
     <main ref={pageRef} className="overflow-x-clip bg-white">
       <section className="relative bg-lab-black px-6 pb-16 pt-32 text-white sm:px-8 lg:px-10 lg:pb-24 lg:pt-40">
         <div className="absolute inset-x-0 bottom-0 h-px bg-white/15" />
-        <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
+        <div className="mx-auto grid max-w-7xl gap-14 md:grid-cols-[1.05fr_0.95fr] md:items-center md:gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-14">
           <div className="sticker-hero-copy relative z-10">
             <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">Custom stickers</p>
             <h1 className="mt-7 font-display text-[clamp(4rem,9vw,9rem)] font-bold uppercase leading-[0.84] tracking-tighter">
@@ -453,9 +478,9 @@ export default function StickersPage() {
 
           <div className="mt-14 grid border-l border-t border-lab-line sm:grid-cols-2 lg:grid-cols-4">
             {formats.map((format, index) => (
-              <article key={format.name} className="group min-h-64 border-b border-r border-lab-line p-7 transition-colors hover:bg-lab-gold sm:p-8">
+              <article key={format.name} className="group border-b border-r border-lab-line p-6 transition-colors hover:bg-lab-gold sm:min-h-64 sm:p-8">
                 <span className="font-impact text-4xl text-lab-gold transition-colors group-hover:text-lab-black">0{index + 1}</span>
-                <h3 className="mt-16 font-display text-2xl font-bold uppercase tracking-tight">{format.name}</h3>
+                <h3 className="mt-9 font-display text-2xl font-bold uppercase tracking-tight sm:mt-16">{format.name}</h3>
                 <p className="mt-4 text-sm font-medium leading-relaxed text-lab-black/58">{format.note}</p>
                 <button type="button" onClick={() => { update('shape', format.name); moveToQuote(); }} className="mt-7 inline-flex min-h-11 items-center gap-2 font-sans text-[11px] font-bold uppercase tracking-widest opacity-55 transition-opacity hover:opacity-100">
                   Add to request <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -521,9 +546,9 @@ export default function StickersPage() {
 
           <div className="sticker-process-grid mt-12 grid border-l border-t border-lab-line md:grid-cols-2 lg:grid-cols-4">
             {process.map(([number, title, copy]) => (
-              <article key={number} className="sticker-process-card min-h-64 border-b border-r border-lab-line p-7 sm:p-8">
+              <article key={number} className="sticker-process-card border-b border-r border-lab-line p-6 sm:min-h-64 sm:p-8">
                 <span className="font-impact text-4xl text-lab-gold">{number}</span>
-                <h3 className="mt-14 font-display text-xl font-bold uppercase tracking-tight">{title}</h3>
+                <h3 className="mt-9 font-display text-xl font-bold uppercase tracking-tight sm:mt-14">{title}</h3>
                 <p className="mt-4 text-sm font-medium leading-relaxed text-lab-black/58">{copy}</p>
               </article>
             ))}
@@ -553,7 +578,15 @@ export default function StickersPage() {
               <img src="/assets/images/stickers-process-v2.webp" alt="" className="hidden h-full w-full object-cover lg:block" />
             </div>
           ) : (
-            <div className="grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-start">
+            <>
+              <details className="mb-6 lg:hidden">
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between border border-lab-line bg-white px-5 font-sans text-xs font-bold uppercase tracking-widest">
+                  View request summary <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                </summary>
+                <StickerBriefSummary quote={quote} sizeLabel={sizeLabel} />
+              </details>
+
+              <div className="grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-start">
               <form ref={formRef} name="sticker_quote" method="POST" data-netlify="true" netlify-honeypot="bot-field" encType="multipart/form-data" noValidate onSubmit={handleSubmit} className="border border-lab-line bg-white p-6 sm:p-10 lg:p-12">
                 <input type="hidden" name="form-name" value="sticker_quote" />
                 <p className="hidden"><label>Do not fill this out: <input name="bot-field" /></label></p>
@@ -721,34 +754,16 @@ export default function StickersPage() {
                 )}
               </form>
 
-              <aside className="lg:sticky lg:top-28">
-                <div className="bg-lab-black p-7 text-white sm:p-8">
-                  <p className="font-accent text-[11px] font-bold uppercase tracking-[0.14em] text-lab-gold">Request summary</p>
-                  <h3 className="mt-5 font-display text-3xl font-bold uppercase tracking-tight">Your sticker brief</h3>
-                  <dl className="mt-7">
-                    {[
-                      ['Quantity', quote.quantity || 'Not set'],
-                      ['Designs', quote.designCount || 'Not set'],
-                      ['Size', sizeLabel],
-                      ['Format', quote.shape],
-                      ['Surface', quote.surface],
-                      ['Artwork', quote.artworkStatus || 'Not set'],
-                    ].map(([label, value]) => (
-                      <div key={label} className="grid grid-cols-[82px_1fr] gap-4 border-b border-white/14 py-4">
-                        <dt className="text-xs font-semibold text-white/45">{label}</dt>
-                        <dd className="text-xs font-semibold leading-relaxed text-white/78">{value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                  <p className="mt-6 text-xs font-medium leading-relaxed text-white/48">A working summary only. Final specifications and pricing are confirmed by Merchcraft.</p>
-                </div>
+              <aside className="hidden lg:sticky lg:top-28 lg:block">
+                <StickerBriefSummary quote={quote} sizeLabel={sizeLabel} />
                 <div className="mt-4 border border-lab-line bg-white p-7 sm:p-8">
                   <h3 className="font-display text-xl font-bold uppercase tracking-tight">Not sure about a detail?</h3>
                   <p className="mt-3 text-sm font-medium leading-relaxed text-lab-black/55">Choose a recommendation option or describe the intended use in your notes.</p>
                   <Link to="/contact" className="mt-6 inline-flex items-center gap-3 font-sans text-[11px] font-bold uppercase tracking-widest text-lab-red">Talk to the team <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" /></Link>
                 </div>
               </aside>
-            </div>
+              </div>
+            </>
           )}
         </div>
       </section>

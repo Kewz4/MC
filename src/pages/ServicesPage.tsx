@@ -57,7 +57,7 @@ export default function ServicesPage() {
   return (
     <main className="overflow-hidden bg-white">
       <section className="px-6 pb-16 pt-32 sm:px-8 lg:px-10 lg:pb-24 lg:pt-40">
-        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
+        <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-[1.05fr_0.95fr] md:items-center md:gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-12">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}>
             <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-red">Our services</p>
             <h1 className="mt-7 font-display text-[clamp(4rem,8.5vw,8.5rem)] font-bold uppercase leading-[0.84] tracking-tighter">
@@ -92,7 +92,10 @@ export default function ServicesPage() {
                   key={item.id}
                   type="button"
                   aria-pressed={activeId === item.id}
-                  onClick={() => setActiveId(item.id)}
+                  onClick={(event) => {
+                    setActiveId(item.id);
+                    event.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                  }}
                   className={`min-w-max border-r border-lab-line px-6 py-5 font-sans text-xs font-bold uppercase tracking-[0.12em] transition-colors last:border-r-0 ${activeId === item.id ? 'bg-lab-black text-white' : 'bg-transparent text-lab-black/60 hover:text-lab-black'}`}
                 >
                   {item.title}

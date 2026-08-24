@@ -307,7 +307,6 @@ export default function StickerSplineScene() {
     let preheatTimer: number | undefined;
     let scrollRaf: number | undefined;
     let wheelRaf: number | undefined;
-    let endpointPaintRaf: number | undefined;
     let pointerMoveRaf: number | undefined;
     let latestPointerMove: PointerEvent | undefined;
     let sectionTop = 0;
@@ -316,8 +315,6 @@ export default function StickerSplineScene() {
     let wheelTargetY = window.scrollY;
     let wheelDirection = 0;
     let lastWheelFrameAt = 0;
-    let boundaryGuard: 'start' | 'end' | undefined;
-    let endpointReleaseReady: 'start' | 'end' | undefined;
     let lastProgress = Number.NaN;
     let currentZoom = 0;
     let tracks: StickerTrack[] = [];
@@ -340,28 +337,9 @@ export default function StickerSplineScene() {
       app.requestRender();
     };
 
-    const clearBoundaryGuard = () => {
-      if (endpointPaintRaf !== undefined) window.cancelAnimationFrame(endpointPaintRaf);
-      endpointPaintRaf = undefined;
-      boundaryGuard = undefined;
-      endpointReleaseReady = undefined;
-      delete stage.dataset.sceneBoundary;
-    };
-
-    const guardRenderedEndpoint = (endpoint: 'start' | 'end') => {
-      if (endpointPaintRaf !== undefined) window.cancelAnimationFrame(endpointPaintRaf);
-      boundaryGuard = endpoint;
-      endpointReleaseReady = undefined;
-      stage.dataset.sceneBoundary = endpoint;
-
-      // Two animation frames guarantee the endpoint has actually been painted
-      // before an outward wheel/momentum event is allowed to leave the scene.
-      endpointPaintRaf = window.requestAnimationFrame(() => {
-        endpointPaintRaf = window.requestAnimationFrame(() => {
-          endpointPaintRaf = undefined;
-          if (boundaryGuard === endpoint) endpointReleaseReady = endpoint;
-        });
-      });
+    const markBoundary = (endpoint?: 'start' | 'end') => {
+      if (endpoint) stage.dataset.sceneBoundary = endpoint;
+      else delete stage.dataset.sceneBoundary;
     };
 
     const cancelWheelMotion = (targetY = window.scrollY) => {
@@ -385,11 +363,7 @@ export default function StickerSplineScene() {
         : clampedTarget >= sectionEnd - SCROLL_BOUNDARY_EPSILON
           ? 'end'
           : undefined;
-      if (endpoint) {
-        if (boundaryGuard !== endpoint) guardRenderedEndpoint(endpoint);
-      } else if (boundaryGuard) {
-        clearBoundaryGuard();
-      }
+      markBoundary(endpoint);
     };
 
     const runWheelMotion = (now: number) => {
@@ -473,25 +447,6 @@ export default function StickerSplineScene() {
       const sectionEnd = sectionTop + scrollRange;
       const currentScrollY = window.scrollY;
 
-      if (boundaryGuard) {
-        const boundaryY = boundaryGuard === 'start' ? sectionStart : sectionEnd;
-        const movingOutward = boundaryGuard === 'start'
-          ? currentScrollY < boundaryY - SCROLL_BOUNDARY_EPSILON
-          : currentScrollY > boundaryY + SCROLL_BOUNDARY_EPSILON;
-        const movingInward = boundaryGuard === 'start'
-          ? currentScrollY > boundaryY + SCROLL_BOUNDARY_EPSILON
-          : currentScrollY < boundaryY - SCROLL_BOUNDARY_EPSILON;
-
-        if (movingOutward && endpointReleaseReady !== boundaryGuard) {
-          window.scrollTo({ top: boundaryY, left: window.scrollX, behavior: 'instant' });
-          lastScrollY = boundaryY;
-          applyProgress(boundaryGuard === 'start' ? 0 : 1);
-          return;
-        }
-
-        if (movingOutward || movingInward) clearBoundaryGuard();
-      }
-
       let boundaryTarget: number | undefined;
 
       // Catch a single extreme wheel, touch, keyboard, or scrollbar jump at
@@ -504,11 +459,12 @@ export default function StickerSplineScene() {
       if (boundaryTarget !== undefined) {
         window.scrollTo({ top: boundaryTarget, left: window.scrollX, behavior: 'instant' });
         lastScrollY = boundaryTarget;
-        guardRenderedEndpoint(boundaryTarget === sectionStart ? 'start' : 'end');
+        markBoundary(boundaryTarget === sectionStart ? 'start' : 'end');
         applyProgress((boundaryTarget - sectionStart) / scrollRange);
         return;
       }
 
+      markBoundary();
       lastScrollY = currentScrollY;
       applyProgress((currentScrollY - sectionStart) / scrollRange);
     };
@@ -539,7 +495,7 @@ export default function StickerSplineScene() {
         cancelWheelMotion(sectionStart);
         window.scrollTo({ top: sectionStart, left: window.scrollX, behavior: 'instant' });
         lastScrollY = sectionStart;
-        guardRenderedEndpoint('start');
+        markBoundary('start');
         applyProgress(0);
         return;
       }
@@ -549,7 +505,7 @@ export default function StickerSplineScene() {
         cancelWheelMotion(sectionEnd);
         window.scrollTo({ top: sectionEnd, left: window.scrollX, behavior: 'instant' });
         lastScrollY = sectionEnd;
-        guardRenderedEndpoint('end');
+        markBoundary('end');
         applyProgress(1);
         return;
       }
@@ -558,16 +514,13 @@ export default function StickerSplineScene() {
         && currentScrollY <= sectionEnd + SCROLL_BOUNDARY_EPSILON;
       if (!insideSection) return;
 
-      // Once the authored endpoint is visibly reached, the outward direction
-      // returns to native document scrolling immediately.
+      // Endpoint ownership is directional, never time-based: inward input is
+      // still captured by the scene, while outward input always returns to the
+      // document immediately. This prevents alternating wheel momentum from
+      // repeatedly re-arming a paint delay and trapping the page at an edge.
       if ((deltaY < 0 && currentScrollY <= sectionStart + SCROLL_BOUNDARY_EPSILON)
         || (deltaY > 0 && currentScrollY >= sectionEnd - SCROLL_BOUNDARY_EPSILON)) {
-        const endpoint = deltaY < 0 ? 'start' : 'end';
-        if (boundaryGuard === endpoint && endpointReleaseReady !== endpoint) {
-          event.preventDefault();
-          return;
-        }
-        clearBoundaryGuard();
+        markBoundary();
         cancelWheelMotion(currentScrollY);
         return;
       }
@@ -795,7 +748,6 @@ export default function StickerSplineScene() {
       snapFrames.clear();
       if (scrollRaf !== undefined) window.cancelAnimationFrame(scrollRaf);
       cancelWheelMotion();
-      if (endpointPaintRaf !== undefined) window.cancelAnimationFrame(endpointPaintRaf);
       if (pointerMoveRaf !== undefined) window.cancelAnimationFrame(pointerMoveRaf);
       resizeObserver.disconnect();
       window.removeEventListener('wheel', handleWheelIntent, { capture: true });

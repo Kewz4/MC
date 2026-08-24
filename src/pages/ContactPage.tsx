@@ -57,7 +57,7 @@ export default function ContactPage() {
   return (
     <main className="overflow-hidden bg-white">
       <section className="px-6 pb-16 pt-32 sm:px-8 lg:px-10 lg:pb-24 lg:pt-40">
-        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-[1.1fr_0.9fr] md:items-center md:gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}>
             <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-red">Contact</p>
             <h1 className="mt-7 font-display text-[clamp(4rem,8vw,8rem)] font-bold uppercase leading-[0.84] tracking-tighter">Let’s make something<br /><span className="font-display normal-case text-lab-gold">worth wearing.</span></h1>
@@ -79,7 +79,7 @@ export default function ContactPage() {
               const content = (
                 <>
                   <h3 className="font-display text-3xl font-bold uppercase tracking-tighter">{option.title}</h3>
-                  <p className="mt-6 min-h-[100px] text-sm font-medium leading-relaxed text-lab-black/58">{option.copy}</p>
+                  <p className="mt-6 text-sm font-medium leading-relaxed text-lab-black/58 lg:min-h-[100px]">{option.copy}</p>
                   <span className="mt-8 flex items-center gap-3 font-sans text-xs font-bold uppercase tracking-widest">
                     {option.action}
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />

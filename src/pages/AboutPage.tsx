@@ -116,15 +116,15 @@ export default function AboutPage() {
 
   return (
     <main ref={pageRef} className="bg-white">
-      <section ref={heroRef} className="relative flex min-h-[94vh] items-end overflow-hidden bg-lab-black px-6 pb-12 pt-32 text-white sm:px-8 lg:px-10 lg:pb-16">
+      <section ref={heroRef} className="relative flex min-h-[94svh] items-end overflow-hidden bg-lab-black px-6 pb-12 pt-32 text-white sm:px-8 lg:px-10 lg:pb-16">
         <img src="/assets/images/about-hero-v3.webp" alt="Merchcraft makers working across printing, embroidery, and finishing stations" className="about-hero-image absolute inset-0 h-[110%] w-full object-cover object-center" />
         <div className="absolute inset-0 bg-gradient-to-b from-lab-black/20 via-lab-black/10 to-lab-black/90" />
 
         <div className="relative z-10 mx-auto w-full max-w-7xl">
           <p className="mb-7 font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">About Merchcraft</p>
           <h1 className="font-display text-[clamp(3.1rem,11vw,11rem)] font-bold uppercase leading-[0.82] tracking-tighter">
-            <span className="block overflow-hidden"><span className="about-hero-word block">The people</span></span>
-            <span className="block overflow-hidden"><span className="about-hero-word block">behind <span className="font-display normal-case text-lab-gold">the work.</span></span></span>
+            <span className="-mb-[0.08em] block overflow-hidden pb-[0.08em] pr-[0.06em]"><span className="about-hero-word block">The people</span></span>
+            <span className="-mb-[0.08em] block overflow-hidden pb-[0.08em] pr-[0.06em]"><span className="about-hero-word block">behind <span className="font-display normal-case text-lab-gold">the work.</span></span></span>
           </h1>
           <div className="mt-9 flex flex-col gap-6 border-t border-white/35 pt-7 sm:flex-row sm:items-end sm:justify-between">
             <p className="max-w-2xl text-base font-medium leading-relaxed text-white/72 sm:text-lg">We help brands turn ideas into apparel through thoughtful production, close collaboration, and careful finishing.</p>
@@ -166,7 +166,7 @@ export default function AboutPage() {
 
             <div>
               {processSteps.map((step) => (
-                <article key={step.index} className="process-card flex min-h-[72vh] flex-col justify-center border-t border-lab-line py-16 first:border-t-0 lg:min-h-[82vh] lg:py-24">
+                <article key={step.index} className="process-card flex flex-col justify-center border-t border-lab-line py-14 first:border-t-0 lg:min-h-[82vh] lg:py-24">
                   <div className="mb-8 overflow-hidden bg-lab-black lg:hidden">
                     <img src={step.image} alt={step.alt} loading="lazy" className="aspect-[4/3] h-full w-full object-cover" />
                   </div>
@@ -197,7 +197,7 @@ export default function AboutPage() {
               ['Agencies', 'A production partner that protects the creative idea through execution.'],
               ['Creative directors', 'Thoughtful garment, method, placement, and finishing collaboration.'],
             ].map(([title, copy], index) => (
-              <motion.article key={title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.45 }} transition={{ delay: index * 0.07 }} className="min-h-[270px] border-b border-lab-line py-9 md:border-r md:px-8 lg:border-b-0 first:md:pl-0 last:lg:border-r-0">
+              <motion.article key={title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.45 }} transition={{ delay: index * 0.07 }} className="border-b border-lab-line py-9 md:min-h-[270px] md:border-r md:px-8 lg:border-b-0 first:md:pl-0 last:lg:border-r-0">
                 <h3 className="font-display text-2xl font-bold uppercase tracking-tight">{title}</h3>
                 <p className="mt-6 text-sm font-medium leading-relaxed text-lab-black/55">{copy}</p>
               </motion.article>

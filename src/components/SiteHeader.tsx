@@ -70,7 +70,8 @@ export default function SiteHeader() {
 
   return (
     <>
-      <header className={`fixed left-0 top-0 z-50 flex w-full items-center justify-between border-b border-lab-line bg-white/95 px-8 backdrop-blur-md transition-all duration-300 ${isScrolled ? 'py-2.5' : 'py-5'}`}>
+      <header className={`fixed left-0 top-0 z-50 grid w-full grid-cols-[44px_minmax(0,1fr)_44px] items-center border-b border-lab-line bg-white/95 px-5 backdrop-blur-md transition-all duration-300 sm:px-8 xl:flex xl:justify-between ${isScrolled ? 'py-2.5' : 'py-5'}`}>
+        <span aria-hidden="true" className="h-11 w-11 xl:hidden" />
         <nav aria-label="Primary" className="hidden flex-1 items-center gap-6 xl:flex">
           <HeaderLink to="/services">Services</HeaderLink>
           <HeaderLink to="/stickers">Stickers</HeaderLink>
@@ -79,9 +80,9 @@ export default function SiteHeader() {
           <HeaderLink>Projects</HeaderLink>
         </nav>
 
-        <div className="flex flex-1 justify-center">
-          <Link to="/" aria-label="Merchcraft home" className={`block cursor-pointer transition-all duration-500 ${isScrolled ? 'h-6' : 'h-10'}`}>
-            <img src="/assets/brand/merchcraft-primary-full.svg" alt="Merchcraft Logo" className="h-full w-auto" />
+        <div className="flex min-w-0 flex-1 justify-center">
+          <Link to="/" aria-label="Merchcraft home" className="flex min-h-11 cursor-pointer items-center transition-all duration-500">
+            <img src="/assets/brand/merchcraft-primary-full.svg" alt="Merchcraft Logo" className={`w-auto transition-all duration-500 ${isScrolled ? 'h-6' : 'h-10'}`} />
           </Link>
         </div>
 
@@ -104,7 +105,7 @@ export default function SiteHeader() {
         <button
           ref={menuButtonRef}
           type="button"
-          className="flex items-center gap-4 xl:hidden"
+          className="flex h-11 w-11 items-center justify-center xl:hidden"
           aria-label="Open navigation"
           aria-expanded={isMenuOpen}
           aria-controls="mobile-navigation"
@@ -126,15 +127,16 @@ export default function SiteHeader() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-lab-white p-6 transition-colors duration-300 sm:p-10"
+            className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-lab-white p-6 transition-colors duration-300 sm:p-10 [@media(max-height:520px)]:p-4"
           >
-            <div className="mb-10 flex items-center justify-between sm:mb-16">
-              <Link to="/" aria-label="Merchcraft home" className="h-6" onClick={() => setIsMenuOpen(false)}>
-                <img src="/assets/brand/merchcraft-primary-full.svg" alt="" className="h-full w-auto" />
+            <div className="mb-10 flex items-center justify-between sm:mb-16 [@media(max-height:520px)]:mb-3">
+              <Link to="/" aria-label="Merchcraft home" className="flex min-h-11 items-center" onClick={() => setIsMenuOpen(false)}>
+                <img src="/assets/brand/merchcraft-primary-full.svg" alt="" className="h-6 w-auto" />
               </Link>
               <button
                 type="button"
                 aria-label="Close navigation"
+                className="flex h-11 w-11 items-center justify-center"
                 autoFocus
                 onClick={() => {
                   setIsMenuOpen(false);
@@ -145,20 +147,20 @@ export default function SiteHeader() {
               </button>
             </div>
 
-            <nav aria-label="Mobile" className="flex flex-col gap-5 sm:gap-7">
-              <Link to="/services" className="font-impact text-4xl uppercase tracking-tighter transition-all hover:text-stroke sm:text-5xl md:text-6xl" onClick={() => setIsMenuOpen(false)}>Services</Link>
-              <Link to="/stickers" className="font-impact text-4xl uppercase tracking-tighter transition-all hover:text-stroke sm:text-5xl md:text-6xl" onClick={() => setIsMenuOpen(false)}>Stickers</Link>
+            <nav aria-label="Mobile" className="flex flex-col gap-5 sm:gap-7 [@media(max-height:520px)]:gap-2">
+              <Link to="/services" className="flex min-h-11 items-center font-impact text-4xl uppercase tracking-tighter transition-all hover:text-stroke sm:text-5xl md:text-6xl [@media(max-height:520px)]:text-3xl" onClick={() => setIsMenuOpen(false)}>Services</Link>
+              <Link to="/stickers" className="flex min-h-11 items-center font-impact text-4xl uppercase tracking-tighter transition-all hover:text-stroke sm:text-5xl md:text-6xl [@media(max-height:520px)]:text-3xl" onClick={() => setIsMenuOpen(false)}>Stickers</Link>
               {['Showroom', 'Culture', 'Projects'].map((item) => (
-                <a key={item} href="#" className="font-impact text-4xl uppercase tracking-tighter transition-all hover:text-stroke sm:text-5xl md:text-6xl" onClick={() => setIsMenuOpen(false)}>
+                <a key={item} href="#" className="flex min-h-11 items-center font-impact text-4xl uppercase tracking-tighter transition-all hover:text-stroke sm:text-5xl md:text-6xl [@media(max-height:520px)]:text-3xl" onClick={() => setIsMenuOpen(false)}>
                   {item}
                 </a>
               ))}
-              <Link to="/quote" className="mt-3 w-full rounded-full bg-lab-red py-4 text-center font-sans text-xs font-bold uppercase tracking-widest text-white shadow-lg transition-all duration-300 hover:bg-lab-black" onClick={() => setIsMenuOpen(false)}>
+              <Link to="/quote" className="mt-3 flex min-h-14 w-full items-center justify-center rounded-full bg-lab-red px-6 text-center font-sans text-xs font-bold uppercase tracking-widest text-white shadow-lg transition-all duration-300 hover:bg-lab-black [@media(max-height:520px)]:mt-1 [@media(max-height:520px)]:min-h-11" onClick={() => setIsMenuOpen(false)}>
                 Begin Your Build
               </Link>
             </nav>
 
-            <div className="mt-12 flex items-end justify-between border-t border-lab-line pt-8 sm:mt-auto">
+            <div className="mt-12 flex items-end justify-between border-t border-lab-line pt-8 sm:mt-auto [@media(max-height:520px)]:hidden">
               <div className="font-sans text-[10px] uppercase tracking-widest text-lab-black/40">
                 Santa Ana / CA<br />Quality Apparel Printing
               </div>
