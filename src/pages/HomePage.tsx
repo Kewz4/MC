@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
+import { motion, AnimatePresence, useInView, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import {
   ArrowRight,
   FlaskConical,
@@ -110,6 +110,7 @@ type LabGeometry = {
   height: number;
   size: number;
   zoom: number;
+  pixelRatio: number;
 };
 
 // Keep the showroom artwork swappable without touching the interaction code.
@@ -175,17 +176,16 @@ const InteractiveLab = ({ imageSrc = LAB_SHOWROOM_IMAGE }: { imageSrc?: string }
   const [mobileInspection, setMobileInspection] = useState(false);
   const [hasFinePointer, setHasFinePointer] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const baseImageRef = useRef<HTMLImageElement>(null);
   const lensRef = useRef<HTMLDivElement>(null);
-  const lensImageRef = useRef<HTMLImageElement>(null);
-  const geometryRef = useRef<LabGeometry>({ left: 0, top: 0, width: 0, height: 0, size: 196, zoom: 1.9 });
+  const lensCanvasRef = useRef<HTMLCanvasElement>(null);
+  const geometryRef = useRef<LabGeometry>({ left: 0, top: 0, width: 0, height: 0, size: 196, zoom: 1.9, pixelRatio: 1 });
+  const geometryDirtyRef = useRef(true);
   const targetPointRef = useRef({ x: 0, y: 0 });
-  const renderedPointRef = useRef({ x: 0, y: 0 });
   const lensFrameRef = useRef<number | null>(null);
-  const positionFrameRef = useRef<number | null>(null);
   const touchPointerRef = useRef<number | null>(null);
   const lensVisibleRef = useRef(false);
   const supportsHoverRef = useRef(false);
-  const prefersReducedMotionRef = useRef(false);
   const mobileInspectionRef = useRef(false);
   const activeHotspotRef = useRef<number | null>(null);
 
@@ -193,6 +193,7 @@ const InteractiveLab = ({ imageSrc = LAB_SHOWROOM_IMAGE }: { imageSrc?: string }
   const detailOpensOnRight = (activeSpot?.x ?? 100) < 50;
 
   const setLensVisible = useCallback((isVisible: boolean) => {
+    if (lensVisibleRef.current === isVisible) return;
     lensVisibleRef.current = isVisible;
     if (!isVisible && lensFrameRef.current !== null) {
       cancelAnimationFrame(lensFrameRef.current);
@@ -219,101 +220,108 @@ const InteractiveLab = ({ imageSrc = LAB_SHOWROOM_IMAGE }: { imageSrc?: string }
       size: rect.width < 720
         ? Math.min(164, Math.max(136, rect.width * 0.4))
         : Math.min(204, Math.max(164, rect.width * 0.165)),
-      zoom: rect.width < 720 ? 1.72 : 1.9
+      zoom: rect.width < 720 ? 1.72 : 1.9,
+      pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5)
     };
     geometryRef.current = geometry;
+    geometryDirtyRef.current = false;
 
     if (lensRef.current) {
       lensRef.current.style.width = `${geometry.size}px`;
       lensRef.current.style.height = `${geometry.size}px`;
     }
-    if (lensImageRef.current) {
-      lensImageRef.current.style.width = `${geometry.width}px`;
-      lensImageRef.current.style.height = `${geometry.height}px`;
+    if (lensCanvasRef.current) {
+      lensCanvasRef.current.width = Math.round(geometry.size * geometry.pixelRatio);
+      lensCanvasRef.current.height = Math.round(geometry.size * geometry.pixelRatio);
     }
     return geometry;
   }, []);
 
+  const getLabGeometry = useCallback(() => {
+    if (geometryDirtyRef.current || !geometryRef.current.width) return measureLab();
+    return geometryRef.current;
+  }, [measureLab]);
+
   const drawLens = useCallback((x: number, y: number) => {
     const lens = lensRef.current;
-    const image = lensImageRef.current;
+    const canvas = lensCanvasRef.current;
+    const image = baseImageRef.current;
     const geometry = geometryRef.current;
-    if (!lens || !image || !geometry.width || !geometry.height) return;
+    if (!lens || !canvas || !image?.complete || !image.naturalWidth || !geometry.width || !geometry.height) return;
 
     const inset = geometry.size / 2 + 12;
     const lensX = Math.max(inset, Math.min(geometry.width - inset, x));
     const lensY = Math.max(inset, Math.min(geometry.height - inset, y));
     lens.style.transform = `translate3d(${lensX - geometry.size / 2}px, ${lensY - geometry.size / 2}px, 0)`;
-    image.style.transform = `translate3d(${geometry.size / 2 - x * geometry.zoom}px, ${geometry.size / 2 - y * geometry.zoom}px, 0) scale(${geometry.zoom})`;
+
+    const context = canvas.getContext('2d', { alpha: false });
+    if (!context) return;
+
+    const coverScale = Math.max(geometry.width / image.naturalWidth, geometry.height / image.naturalHeight);
+    const renderedWidth = image.naturalWidth * coverScale;
+    const renderedHeight = image.naturalHeight * coverScale;
+    const objectPositionX = geometry.width < 640 ? 0.54 : 0.5;
+    const offsetX = (geometry.width - renderedWidth) * objectPositionX;
+    const offsetY = (geometry.height - renderedHeight) * 0.5;
+    const sourceSize = Math.min(
+      image.naturalWidth,
+      image.naturalHeight,
+      geometry.size / (geometry.zoom * coverScale)
+    );
+    const sourceCenterX = (x - offsetX) / coverScale;
+    const sourceCenterY = (y - offsetY) / coverScale;
+    const sourceX = Math.max(0, Math.min(image.naturalWidth - sourceSize, sourceCenterX - sourceSize / 2));
+    const sourceY = Math.max(0, Math.min(image.naturalHeight - sourceSize, sourceCenterY - sourceSize / 2));
+
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.setTransform(geometry.pixelRatio, 0, 0, geometry.pixelRatio, 0, 0);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, geometry.size, geometry.size);
   }, []);
 
   const queueLensDraw = useCallback((x: number, y: number, immediate = false) => {
-    targetPointRef.current = { x, y };
+    targetPointRef.current.x = x;
+    targetPointRef.current.y = y;
 
-    if (immediate || prefersReducedMotionRef.current) {
-      renderedPointRef.current = { x, y };
+    if (immediate) {
+      if (lensFrameRef.current !== null) {
+        cancelAnimationFrame(lensFrameRef.current);
+        lensFrameRef.current = null;
+      }
       drawLens(x, y);
       return;
     }
 
     if (lensFrameRef.current !== null) return;
-    const renderFrame = () => {
-      const current = renderedPointRef.current;
+    lensFrameRef.current = requestAnimationFrame(() => {
+      lensFrameRef.current = null;
       const target = targetPointRef.current;
-      const nextX = current.x + (target.x - current.x) * 0.38;
-      const nextY = current.y + (target.y - current.y) * 0.38;
-      renderedPointRef.current = { x: nextX, y: nextY };
-      drawLens(nextX, nextY);
-
-      if (Math.abs(target.x - nextX) > 0.18 || Math.abs(target.y - nextY) > 0.18) {
-        lensFrameRef.current = requestAnimationFrame(renderFrame);
-      } else {
-        renderedPointRef.current = { ...target };
-        drawLens(target.x, target.y);
-        lensFrameRef.current = null;
-      }
-    };
-    lensFrameRef.current = requestAnimationFrame(renderFrame);
+      drawLens(target.x, target.y);
+    });
   }, [drawLens]);
 
   const revealLensAt = useCallback((x: number, y: number) => {
     const shouldPlaceImmediately = !lensVisibleRef.current;
     queueLensDraw(x, y, shouldPlaceImmediately);
-    setLensVisible(true);
+    if (!lensVisibleRef.current) setLensVisible(true);
   }, [queueLensDraw, setLensVisible]);
-
-  const syncLabPosition = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    geometryRef.current.left = rect.left;
-    geometryRef.current.top = rect.top;
-  }, []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
-    const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     const syncHoverSupport = () => {
       supportsHoverRef.current = mediaQuery.matches;
       setHasFinePointer(mediaQuery.matches);
       if (!mediaQuery.matches && activeHotspotRef.current === null) setLensVisible(false);
     };
-    const syncMotionPreference = () => {
-      prefersReducedMotionRef.current = reducedMotionQuery.matches;
-    };
     syncHoverSupport();
-    syncMotionPreference();
     mediaQuery.addEventListener('change', syncHoverSupport);
-    reducedMotionQuery.addEventListener('change', syncMotionPreference);
     const handlePageScroll = () => {
       if (activeHotspotRef.current !== null) dismissHotspot(true);
       if (mobileInspectionRef.current) setMobileInspection(false);
       setLensVisible(false);
-      if (positionFrameRef.current !== null) return;
-      positionFrameRef.current = requestAnimationFrame(() => {
-        positionFrameRef.current = null;
-        syncLabPosition();
-      });
+      geometryDirtyRef.current = true;
     };
     window.addEventListener('scroll', handlePageScroll, { passive: true });
     const resizeObserver = typeof ResizeObserver === 'undefined'
@@ -333,13 +341,11 @@ const InteractiveLab = ({ imageSrc = LAB_SHOWROOM_IMAGE }: { imageSrc?: string }
 
     return () => {
       mediaQuery.removeEventListener('change', syncHoverSupport);
-      reducedMotionQuery.removeEventListener('change', syncMotionPreference);
       window.removeEventListener('scroll', handlePageScroll);
       resizeObserver?.disconnect();
       if (lensFrameRef.current !== null) cancelAnimationFrame(lensFrameRef.current);
-      if (positionFrameRef.current !== null) cancelAnimationFrame(positionFrameRef.current);
     };
-  }, [dismissHotspot, drawLens, measureLab, setLensVisible, syncLabPosition]);
+  }, [dismissHotspot, drawLens, measureLab, setLensVisible]);
 
   useEffect(() => {
     mobileInspectionRef.current = mobileInspection;
@@ -354,7 +360,7 @@ const InteractiveLab = ({ imageSrc = LAB_SHOWROOM_IMAGE }: { imageSrc?: string }
   }, [dismissHotspot, measureLab, mobileInspection, revealLensAt, setLensVisible]);
 
   const focusHotspot = (spot: LabHotspot) => {
-    const geometry = measureLab();
+    const geometry = getLabGeometry();
     if (!geometry) return;
     const usesMobileCrop = geometry.width < 640;
     const x = usesMobileCrop ? (spot.mobileX ?? spot.x) : spot.x;
@@ -365,7 +371,8 @@ const InteractiveLab = ({ imageSrc = LAB_SHOWROOM_IMAGE }: { imageSrc?: string }
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     const isTouchInspection = touchPointerRef.current === event.pointerId;
     if ((!supportsHoverRef.current && !isTouchInspection) || activeHotspotRef.current !== null) return;
-    const geometry = geometryRef.current;
+    const geometry = getLabGeometry();
+    if (!geometry) return;
     revealLensAt(event.clientX - geometry.left, event.clientY - geometry.top);
   };
 
@@ -375,7 +382,7 @@ const InteractiveLab = ({ imageSrc = LAB_SHOWROOM_IMAGE }: { imageSrc?: string }
     if (target.closest('button, [data-lab-hotspot-detail]')) return;
 
     dismissHotspot(false);
-    const geometry = measureLab();
+    const geometry = getLabGeometry();
     if (!geometry) return;
     touchPointerRef.current = event.pointerId;
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -416,6 +423,7 @@ const InteractiveLab = ({ imageSrc = LAB_SHOWROOM_IMAGE }: { imageSrc?: string }
     >
 
       <img
+        ref={baseImageRef}
         src={imageSrc}
         alt="Merchcraft Apparel Lab Showroom"
         className="relative z-0 h-full w-full select-none object-cover object-[54%_center] sm:object-center"
@@ -423,6 +431,12 @@ const InteractiveLab = ({ imageSrc = LAB_SHOWROOM_IMAGE }: { imageSrc?: string }
         draggable={false}
         decoding="async"
         loading="lazy"
+        onLoad={() => {
+          const geometry = measureLab();
+          if (geometry && lensVisibleRef.current) {
+            drawLens(targetPointRef.current.x, targetPointRef.current.y);
+          }
+        }}
         onClick={() => {
           if (supportsHoverRef.current) dismissHotspot(false);
         }}
@@ -477,15 +491,7 @@ const InteractiveLab = ({ imageSrc = LAB_SHOWROOM_IMAGE }: { imageSrc?: string }
         style={{ width: 196, height: 196 }}
       >
         <div className="absolute inset-0 overflow-hidden rounded-full border-[3px] border-white bg-lab-black shadow-[0_18px_44px_rgba(0,0,0,0.38)] ring-1 ring-lab-gold/80" style={{ contain: 'layout paint style' }}>
-          <img
-            ref={lensImageRef}
-            src={imageSrc}
-            alt=""
-            aria-hidden="true"
-            draggable={false}
-            decoding="async"
-            className="absolute left-0 top-0 max-w-none origin-top-left select-none object-cover object-[54%_center] will-change-transform sm:object-center"
-          />
+          <canvas ref={lensCanvasRef} className="absolute inset-0 h-full w-full" />
           <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_30%_22%,rgba(255,255,255,0.2),transparent_36%)]" />
         </div>
         <div className="absolute -bottom-10 -right-4 h-14 w-5 -rotate-45 rounded-b-full border border-white/45 bg-lab-black shadow-[0_10px_18px_rgba(0,0,0,0.3)]" />
@@ -546,14 +552,100 @@ const COLOR_LIBRARY_SWATCHES = [
 
 const PantoneFan = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [fanSettled, setFanSettled] = useState(false);
+  const [mobileFanSettled, setMobileFanSettled] = useState(false);
+  const mobileFanRef = useRef<HTMLDivElement>(null);
+  const desktopFanRef = useRef<HTMLDivElement>(null);
+  const desktopSwatchRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const mobileFanIsInView = useInView(mobileFanRef, { once: true, margin: '-8% 0px' });
+  const fanIsInView = useInView(desktopFanRef, { once: true, margin: '-12% 0px' });
+  const shouldReduceMotion = useReducedMotion();
   const colors = COLOR_LIBRARY_SWATCHES;
   const selectedColor = colors[selectedIndex];
   const usesDarkInk = selectedColor.darkInk;
+
+  useEffect(() => {
+    if (!fanIsInView || shouldReduceMotion) {
+      return;
+    }
+
+    const settleTimer = window.setTimeout(() => setFanSettled(true), 900);
+    return () => window.clearTimeout(settleTimer);
+  }, [fanIsInView, shouldReduceMotion]);
+
+  useEffect(() => {
+    if (!mobileFanIsInView || shouldReduceMotion) {
+      return;
+    }
+
+    const settleTimer = window.setTimeout(() => setMobileFanSettled(true), 650);
+    return () => window.clearTimeout(settleTimer);
+  }, [mobileFanIsInView, shouldReduceMotion]);
+
+  const selectDesktopSwatch = useCallback((nextIndex: number, moveFocus = false) => {
+    const normalizedIndex = (nextIndex + colors.length) % colors.length;
+    setSelectedIndex(normalizedIndex);
+
+    if (moveFocus) {
+      window.requestAnimationFrame(() => desktopSwatchRefs.current[normalizedIndex]?.focus());
+    }
+  }, [colors.length]);
+
+  const handleDesktopSwatchKeyDown = useCallback((event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let nextIndex: number | null = null;
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = index + 1;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = index - 1;
+    if (event.key === 'Home') nextIndex = 0;
+    if (event.key === 'End') nextIndex = colors.length - 1;
+
+    if (nextIndex !== null) {
+      event.preventDefault();
+      selectDesktopSwatch(nextIndex, true);
+    }
+  }, [colors.length, selectDesktopSwatch]);
 
   return (
     <div className="relative w-full">
       <div className="lg:hidden">
         <div className="mx-auto max-w-sm">
+          <div
+            ref={mobileFanRef}
+            className="relative mx-auto mb-7 h-44 w-full max-w-[19rem] overflow-visible"
+            aria-hidden="true"
+          >
+            <div className="pointer-events-none absolute bottom-1 left-1/2 h-32 w-64 -translate-x-1/2 rounded-[50%] border border-lab-black/[0.06]" />
+            {colors.map((color, i) => {
+              const isSelected = selectedIndex === i;
+              const fanOffset = ((i - selectedIndex + colors.length + Math.floor(colors.length / 2)) % colors.length) - Math.floor(colors.length / 2);
+              const rotation = fanOffset * 7;
+              const hasEntered = mobileFanIsInView || Boolean(shouldReduceMotion);
+
+              return (
+                <div
+                  key={`mobile-fan-${color.hex}`}
+                  className="absolute bottom-2 left-1/2 h-36 w-12 -translate-x-1/2"
+                  style={{ zIndex: isSelected ? 30 : 20 - Math.abs(fanOffset) }}
+                >
+                  <motion.div
+                    initial={false}
+                    animate={hasEntered
+                      ? { opacity: 1, rotate: rotation, y: isSelected ? -9 : 0, scale: isSelected ? 1.04 : 1 }
+                      : { opacity: 0, rotate: 0, y: 34, scale: 0.94 }}
+                    transition={shouldReduceMotion
+                      ? { duration: 0 }
+                      : { delay: !mobileFanSettled && mobileFanIsInView ? i * 0.035 : 0, type: 'spring', stiffness: 190, damping: 23 }}
+                    className="absolute inset-0 origin-[50%_94%] overflow-hidden rounded-md border border-lab-black/10 bg-white p-1 shadow-[0_10px_24px_rgba(16,24,32,0.2)] will-change-transform"
+                  >
+                    <span className="block h-[76%] rounded-[0.2rem]" style={{ backgroundColor: color.hex }} />
+                    <span className="mt-1 block truncate px-0.5 font-sans text-[5px] font-bold uppercase tracking-[0.06em] text-lab-black/45">{color.code}</span>
+                  </motion.div>
+                </div>
+              );
+            })}
+            <div className="absolute bottom-0 left-1/2 z-40 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-lab-black shadow-[0_0_0_6px_rgba(16,24,32,0.08)]" />
+          </div>
+
           <motion.div
             key={selectedColor.hex}
             initial={{ opacity: 0, y: 12, rotate: -1.5 }}
@@ -599,48 +691,119 @@ const PantoneFan = () => {
         </div>
       </div>
 
-      <div className="relative hidden h-[600px] w-full items-center justify-center lg:flex">
-        <div className="pointer-events-none absolute inset-0 opacity-5 lab-grid" />
-        <div className="absolute h-[400px] w-[400px] rounded-full border border-lab-black/5 motion-safe:animate-[spin_20s_linear_infinite]" />
-        <div className="absolute h-[500px] w-[500px] rounded-full border border-lab-black/[0.03] motion-safe:animate-[spin_30s_linear_infinite_reverse]" />
+      <div
+        ref={desktopFanRef}
+        className="relative hidden h-[35rem] min-h-[560px] w-full items-center justify-center overflow-visible lg:flex"
+        role="group"
+        aria-label="Desktop color swatch fan. Use the arrow keys to move between colors."
+      >
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 top-8 opacity-[0.045] lab-grid" />
+        <div className="pointer-events-none absolute bottom-8 left-1/2 h-[25rem] w-[25rem] -translate-x-1/2 rounded-full border border-lab-black/[0.06] motion-safe:animate-[spin_24s_linear_infinite] motion-reduce:animate-none xl:h-[29rem] xl:w-[29rem]" />
+        <div className="pointer-events-none absolute bottom-1 left-1/2 h-[31rem] w-[31rem] -translate-x-1/2 rounded-full border border-lab-black/[0.035] motion-safe:animate-[spin_36s_linear_infinite_reverse] motion-reduce:animate-none xl:h-[35rem] xl:w-[35rem]" />
 
-        <div className="relative h-[320px] w-28">
+        <div
+          id="desktop-color-fan-status"
+          aria-live="polite"
+          className="absolute left-1/2 top-1 z-[70] flex -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-full border border-lab-line bg-white/95 px-4 py-2 shadow-[0_12px_32px_rgba(16,24,32,0.1)] backdrop-blur-sm"
+        >
+          <span className="h-3 w-3 rounded-full border border-lab-black/10" style={{ backgroundColor: selectedColor.hex }} aria-hidden="true" />
+          <span className="font-accent text-[10px] font-bold uppercase tracking-[0.12em] text-lab-black/55">
+            {selectedColor.name} <span className="text-lab-black/30">/</span> {selectedColor.code}
+          </span>
+        </div>
+
+        <div className="absolute inset-x-0 bottom-4 h-[29rem]" aria-hidden="true">
+          <div className="absolute bottom-0 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-lab-black shadow-[0_0_0_8px_rgba(16,24,32,0.08)]" />
+        </div>
+
+        {colors.map((color, i) => {
+          const isSelected = selectedIndex === i;
+          const fanOffset = ((i - selectedIndex + colors.length + Math.floor(colors.length / 2)) % colors.length) - Math.floor(colors.length / 2);
+          const rotation = fanOffset * 7;
+          const hasEntered = fanIsInView || Boolean(shouldReduceMotion);
+
+          return (
+            <div
+              key={color.hex}
+              className="pointer-events-none absolute bottom-12 left-1/2 h-[24.5rem] w-[9.5rem] -translate-x-1/2 xl:h-[26rem] xl:w-[10rem]"
+              style={{ zIndex: isSelected ? 60 : 30 - Math.abs(fanOffset) }}
+            >
+              <motion.button
+                ref={(node) => {
+                  desktopSwatchRefs.current[i] = node;
+                }}
+                type="button"
+                tabIndex={isSelected ? 0 : -1}
+                aria-pressed={isSelected}
+                aria-describedby="desktop-color-fan-status"
+                aria-label={`Select ${color.name}, Pantone ${color.code}`}
+                onClick={() => selectDesktopSwatch(i)}
+                onKeyDown={(event) => handleDesktopSwatchKeyDown(event, i)}
+                initial={false}
+                animate={hasEntered
+                  ? { opacity: 1, rotate: rotation, y: isSelected ? -34 : 0, scale: isSelected ? 1.045 : 1 }
+                  : { opacity: 0, rotate: 0, y: 110, scale: 0.92 }}
+                whileHover={shouldReduceMotion ? undefined : { y: isSelected ? -44 : -18, scale: isSelected ? 1.055 : 1.025 }}
+                whileTap={shouldReduceMotion ? undefined : { scale: 0.985 }}
+                transition={shouldReduceMotion
+                  ? { duration: 0 }
+                  : {
+                      delay: !fanSettled && fanIsInView ? i * 0.055 : 0,
+                      type: 'spring',
+                      stiffness: 180,
+                      damping: 22,
+                      mass: 0.82
+                    }}
+                className={`pointer-events-auto absolute inset-0 flex origin-[50%_94%] cursor-pointer flex-col overflow-hidden rounded-[1.15rem] border bg-white p-2.5 text-left shadow-[0_20px_48px_rgba(16,24,32,0.22)] will-change-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lab-red ${isSelected ? 'border-lab-black/35' : 'border-lab-black/10'}`}
+                style={{ willChange: shouldReduceMotion ? 'auto' : 'transform, opacity' }}
+              >
+                <span
+                  className={`relative flex-1 overflow-hidden rounded-[0.8rem] border ${color.hex === '#FFFFFF' ? 'border-lab-black/10' : 'border-transparent'}`}
+                  style={{ backgroundColor: color.hex }}
+                  aria-hidden="true"
+                >
+                  <span className={`absolute left-3 top-3 font-accent text-[9px] font-bold uppercase tracking-[0.1em] ${color.darkInk ? 'text-lab-black/45' : 'text-white/65'}`}>
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  {isSelected ? (
+                    <span className={`absolute right-3 top-3 rounded-full border px-2 py-1 font-accent text-[8px] font-bold uppercase tracking-[0.1em] ${color.darkInk ? 'border-lab-black/15 bg-white/65 text-lab-black/65' : 'border-white/30 bg-lab-black/15 text-white'}`}>
+                      Selected
+                    </span>
+                  ) : null}
+                </span>
+
+                <span className="flex min-h-[5.65rem] flex-col justify-end px-1 pb-1 pt-3 text-lab-black">
+                  <span className="font-accent text-[10px] font-semibold uppercase leading-tight tracking-[0.04em]">{color.name}</span>
+                  <span className="mt-2 h-px w-full bg-lab-black/10" aria-hidden="true" />
+                  <span className="mt-2 font-sans text-[9px] font-bold uppercase tracking-[0.16em] text-lab-black/40">Pantone {color.code}</span>
+                </span>
+              </motion.button>
+            </div>
+          );
+        })}
+
+        <div
+          className="absolute bottom-0 left-1/2 z-[80] flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-lab-line bg-white/95 p-2 shadow-[0_14px_36px_rgba(16,24,32,0.14)] backdrop-blur-sm"
+          role="group"
+          aria-label="Choose a color directly"
+        >
           {colors.map((color, i) => {
             const isSelected = selectedIndex === i;
-            const rotation = (i - (colors.length - 1) / 2) * 10;
 
             return (
               <motion.button
-                key={color.hex}
+                key={`desktop-selector-${color.hex}`}
                 type="button"
                 aria-pressed={isSelected}
                 aria-label={`Select ${color.name}, Pantone ${color.code}`}
-                initial={{ rotate: 0, y: 100, opacity: 0 }}
-                whileInView={{ y: 0, opacity: 1 }}
-                animate={{
-                  rotate: rotation,
-                  y: isSelected ? -48 : 0,
-                  scale: isSelected ? 1.08 : 1,
-                  zIndex: isSelected ? 100 : colors.length - i
-                }}
-                transition={{
-                  delay: i * 0.05,
-                  type: "spring",
-                  stiffness: 100,
-                  damping: 15
-                }}
-                onClick={() => setSelectedIndex(i)}
-                className="absolute inset-0 flex origin-[50%_110%] cursor-pointer flex-col rounded-xl border border-black/5 p-4 text-left shadow-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lab-red"
+                onClick={() => selectDesktopSwatch(i)}
+                whileHover={shouldReduceMotion ? undefined : { y: -3, scale: 1.08 }}
+                whileTap={shouldReduceMotion ? undefined : { scale: 0.94 }}
+                transition={{ duration: shouldReduceMotion ? 0 : 0.16 }}
+                className={`relative h-9 w-9 shrink-0 rounded-full border-2 shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lab-red xl:h-10 xl:w-10 ${isSelected ? 'border-lab-black ring-2 ring-white ring-offset-2 ring-offset-lab-black/20' : color.hex === '#FFFFFF' ? 'border-lab-black/15' : 'border-white'}`}
                 style={{ backgroundColor: color.hex }}
               >
-                <div className="mt-auto flex flex-col gap-2 rounded bg-white p-2.5 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="font-sans text-[10px] font-bold uppercase leading-none tracking-tighter text-black">{color.name}</span>
-                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: color.hex }} />
-                  </div>
-                  <div className="h-px w-full bg-black/5" />
-                  <span className="font-sans text-[9px] font-bold tracking-[0.2em] text-black/40">{color.code}</span>
-                </div>
+                {isSelected ? <span className={`absolute inset-[35%] rounded-full ${color.darkInk ? 'bg-lab-black' : 'bg-white'}`} aria-hidden="true" /> : null}
               </motion.button>
             );
           })}
