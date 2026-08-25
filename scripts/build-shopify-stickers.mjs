@@ -38,6 +38,11 @@ const routeMap = {
   '/stickers': '/pages/mc-rebrand-stickers',
 };
 
+const homeAnchorMap = {
+  '/#showroom': `${routeMap['/']}#showroom`,
+  '/#projects': `${routeMap['/']}#projects`,
+};
+
 const publicAssetMap = {
   '/assets/brand/merchcraft-primary-full.svg': 'mc-brand-primary-full.svg',
   '/assets/fonts/anton-regular.woff2': 'mc-font-anton-regular.woff2',
@@ -97,6 +102,11 @@ const replaceRouteLiterals = (source) => {
   // Protect the native Shopify contact action before remapping page routes.
   transformed = transformed.replaceAll("shopifyContactForm.action || '/contact'", "shopifyContactForm.action || '__MC_NATIVE_CONTACT__'");
   transformed = transformed.replaceAll('shopifyContactForm.action || "/contact"', 'shopifyContactForm.action || "__MC_NATIVE_CONTACT__"');
+
+  for (const [localAnchor, shopifyAnchor] of Object.entries(homeAnchorMap)) {
+    transformed = transformed.replaceAll(`'${localAnchor}'`, `'${shopifyAnchor}'`);
+    transformed = transformed.replaceAll(`"${localAnchor}"`, `"${shopifyAnchor}"`);
+  }
 
   for (const [localRoute, shopifyRoute] of Object.entries(routeMap).filter(([route]) => route !== '/')) {
     transformed = transformed.replaceAll(`'${localRoute}'`, `'${shopifyRoute}'`);
@@ -260,7 +270,7 @@ const fontFaceLiquid = [
 ].join('');
 
 const serverPreheatStyles = `
-html,body{margin:0}html:has(.mc-preheat-shell),body:has(.mc-preheat-shell){overflow:hidden;overscroll-behavior:none}.mc-preheat-shell{position:fixed;inset:0;z-index:220;display:grid;overflow:auto;overscroll-behavior:contain;background:#fff;color:#101820;font-family:Inter,Arial,sans-serif}.mc-preheat-shell__inner{display:flex;width:min(512px,calc(100% - 40px));min-height:100%;margin:auto;padding:48px 0;box-sizing:border-box;flex-direction:column;align-items:center;justify-content:center;text-align:center}.mc-preheat-shell__logo{width:min(240px,64vw);height:auto}.mc-preheat-shell__phase{display:flex;align-items:center;gap:12px;margin:40px 0 0;color:#CC112C;font:700 11px/1 "Space Grotesk",sans-serif;letter-spacing:.16em;text-transform:uppercase}.mc-preheat-shell__dot{width:8px;height:8px;border-radius:999px;background:#CC112C;animation:mc-preheat-pulse 1s ease-in-out infinite}.mc-preheat-shell__title{max-width:12ch;margin:20px 0 0;font:700 clamp(50px,7vw,84px)/.9 Anton,sans-serif;letter-spacing:-.035em;text-transform:uppercase}.mc-preheat-shell__detail{max-width:384px;margin:18px 0 0;color:rgba(16,24,32,.58);font:600 15px/1.65 Inter,Arial,sans-serif}.mc-preheat-shell__progress{width:100%;margin-top:40px;text-align:left}.mc-preheat-shell__progress-meta{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;color:rgba(16,24,32,.5);font:700 10px/1 "Space Grotesk",sans-serif;letter-spacing:.14em;text-transform:uppercase}.mc-preheat-shell__progress-meta strong{color:rgba(16,24,32,.72);font-size:11px;letter-spacing:0}.mc-preheat-shell__bar{height:8px;margin-top:12px;overflow:hidden;border-radius:999px;background:rgba(16,24,32,.1)}.mc-preheat-shell__bar:after{content:"";display:block;width:32%;height:100%;border-radius:999px;background:#CB9933;transform:translateX(-100%);animation:mc-preheat-load 1.3s ease-in-out infinite}.mc-preheat-shell__progress-status{margin:12px 0 0;text-align:center;color:rgba(16,24,32,.45);font:700 9px/1 "Space Grotesk",sans-serif;letter-spacing:.13em;text-transform:uppercase}@keyframes mc-preheat-pulse{50%{opacity:.32}}@keyframes mc-preheat-load{0%{transform:translateX(-100%)}100%{transform:translateX(315%)}}@media(max-width:540px){.mc-preheat-shell__inner{width:min(100% - 32px,512px);padding:36px 0}}@media(prefers-reduced-motion:reduce){.mc-preheat-shell__dot,.mc-preheat-shell__bar:after{animation:none}.mc-preheat-shell__bar:after{transform:none}}
+html,body{margin:0}html:has(.mc-preheat-shell),body:has(.mc-preheat-shell){overflow:hidden;overscroll-behavior:none}.mc-preheat-shell{position:fixed;inset:0;z-index:220;display:grid;overflow:auto;overscroll-behavior:contain;background:#fff;color:#101820;font-family:Inter,Arial,sans-serif}.mc-preheat-shell__inner{display:flex;width:min(512px,calc(100% - 40px));min-height:100%;margin:auto;padding:48px 0;box-sizing:border-box;flex-direction:column;align-items:center;justify-content:center;text-align:center}.mc-preheat-shell__logo{width:min(240px,64vw);height:auto}.mc-preheat-shell__phase{display:flex;align-items:center;gap:12px;margin:40px 0 0;color:#CC112C;font:700 11px/1 "Space Grotesk",sans-serif;letter-spacing:.16em;text-transform:uppercase}.mc-preheat-shell__dot{width:8px;height:8px;border-radius:999px;background:#CC112C;animation:mc-preheat-pulse 1s ease-in-out infinite}.mc-preheat-shell__title{max-width:12ch;margin:20px 0 0;font:400 clamp(50px,7vw,84px)/.9 Anton,sans-serif;letter-spacing:.01em;text-transform:uppercase}.mc-preheat-shell__detail{max-width:384px;margin:18px 0 0;color:rgba(16,24,32,.58);font:600 15px/1.65 Inter,Arial,sans-serif}.mc-preheat-shell__progress{width:100%;margin-top:40px;text-align:left}.mc-preheat-shell__progress-meta{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;color:rgba(16,24,32,.5);font:700 10px/1 "Space Grotesk",sans-serif;letter-spacing:.14em;text-transform:uppercase}.mc-preheat-shell__progress-meta strong{color:rgba(16,24,32,.72);font-size:11px;letter-spacing:0}.mc-preheat-shell__bar{height:8px;margin-top:12px;overflow:hidden;border-radius:999px;background:rgba(16,24,32,.1)}.mc-preheat-shell__bar:after{content:"";display:block;width:32%;height:100%;border-radius:999px;background:#CB9933;transform:translateX(-100%);animation:mc-preheat-load 1.3s ease-in-out infinite}.mc-preheat-shell__progress-status{margin:12px 0 0;text-align:center;color:rgba(16,24,32,.45);font:700 9px/1 "Space Grotesk",sans-serif;letter-spacing:.13em;text-transform:uppercase}@keyframes mc-preheat-pulse{50%{opacity:.32}}@keyframes mc-preheat-load{0%{transform:translateX(-100%)}100%{transform:translateX(315%)}}@media(max-width:540px){.mc-preheat-shell__inner{width:min(100% - 32px,512px);padding:36px 0}}@media(prefers-reduced-motion:reduce){.mc-preheat-shell__dot,.mc-preheat-shell__bar:after{animation:none}.mc-preheat-shell__bar:after{transform:none}}
 `;
 
 const physicalRoutesJson = JSON.stringify(Object.values(routeMap));

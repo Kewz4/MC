@@ -22,6 +22,11 @@ const routeMap = {
   '/stickers': '/pages/mc-rebrand-stickers',
 };
 
+const homeAnchorMap = {
+  '/#showroom': `${routeMap['/']}#showroom`,
+  '/#projects': `${routeMap['/']}#projects`,
+};
+
 const packageVersion = (name) => {
   const packageJsonPath = resolve(projectRoot, 'node_modules', name, 'package.json');
   return JSON.parse(readFileSync(packageJsonPath, 'utf8')).version;
@@ -71,6 +76,11 @@ const replaceRouteLiterals = (source, sourcePath) => {
   // Keep the Shopify native contact endpoint literal intact while route strings are mapped.
   transformed = transformed.replaceAll("shopifyContactForm.action || '/contact'", "shopifyContactForm.action || '__MC_NATIVE_CONTACT__'");
   transformed = transformed.replaceAll('shopifyContactForm.action || "/contact"', 'shopifyContactForm.action || "__MC_NATIVE_CONTACT__"');
+
+  for (const [localAnchor, shopifyAnchor] of Object.entries(homeAnchorMap)) {
+    transformed = transformed.replaceAll(`'${localAnchor}'`, `'${shopifyAnchor}'`);
+    transformed = transformed.replaceAll(`"${localAnchor}"`, `"${shopifyAnchor}"`);
+  }
 
   for (const [localRoute, shopifyRoute] of Object.entries(routeMap).filter(([route]) => route !== '/')) {
     transformed = transformed.replaceAll(`'${localRoute}'`, `'${shopifyRoute}'`);

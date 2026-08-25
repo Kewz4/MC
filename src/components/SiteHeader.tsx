@@ -3,7 +3,15 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Instagram, Menu, Search, Twitter, User, X } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
-function HeaderLink({ children, to = '#', className = '' }: { children: ReactNode; to?: string; className?: string }) {
+const primaryLinks = [
+  { label: 'Services', to: '/services' },
+  { label: 'Stickers', to: '/stickers' },
+  { label: 'Showroom', to: '/#showroom' },
+  { label: 'Culture', to: '/about' },
+  { label: 'Projects', to: '/#projects' },
+] as const;
+
+function HeaderLink({ children, to, className = '' }: { children: ReactNode; to: string; className?: string; key?: string }) {
   return (
     <Link to={to} className={`whitespace-nowrap font-sans text-[13px] font-bold uppercase tracking-[0.12em] opacity-60 transition-opacity hover:opacity-100 ${className}`}>
       {children}
@@ -28,7 +36,28 @@ export default function SiteHeader() {
   useEffect(() => {
     setIsMenuOpen(false);
     setIsScrolled(false);
-  }, [location.pathname]);
+  }, [location.pathname, location.hash]);
+
+  useEffect(() => {
+    if (!location.hash) return;
+
+    let secondFrame = 0;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+        if (!target) return;
+        target.scrollIntoView({
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+          block: 'start',
+        });
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
+    };
+  }, [location.pathname, location.hash]);
 
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -73,11 +102,9 @@ export default function SiteHeader() {
       <header className={`fixed left-0 top-0 z-50 grid w-full grid-cols-[44px_minmax(0,1fr)_44px] items-center border-b border-lab-line bg-white/95 px-5 backdrop-blur-md transition-all duration-300 sm:px-8 xl:flex xl:justify-between ${isScrolled ? 'py-2.5' : 'py-5'}`}>
         <span aria-hidden="true" className="h-11 w-11 xl:hidden" />
         <nav aria-label="Primary" className="hidden flex-1 items-center gap-6 xl:flex">
-          <HeaderLink to="/services">Services</HeaderLink>
-          <HeaderLink to="/stickers">Stickers</HeaderLink>
-          <HeaderLink>Showroom</HeaderLink>
-          <HeaderLink>Culture</HeaderLink>
-          <HeaderLink>Projects</HeaderLink>
+          {primaryLinks.map(({ label, to }) => (
+            <HeaderLink key={label} to={to}>{label}</HeaderLink>
+          ))}
         </nav>
 
         <div className="flex min-w-0 flex-1 justify-center">
@@ -148,12 +175,10 @@ export default function SiteHeader() {
             </div>
 
             <nav aria-label="Mobile" className="flex flex-col gap-5 sm:gap-7 [@media(max-height:520px)]:gap-2">
-              <Link to="/services" className="flex min-h-11 items-center font-impact text-4xl uppercase tracking-tighter transition-all hover:text-stroke sm:text-5xl md:text-6xl [@media(max-height:520px)]:text-3xl" onClick={() => setIsMenuOpen(false)}>Services</Link>
-              <Link to="/stickers" className="flex min-h-11 items-center font-impact text-4xl uppercase tracking-tighter transition-all hover:text-stroke sm:text-5xl md:text-6xl [@media(max-height:520px)]:text-3xl" onClick={() => setIsMenuOpen(false)}>Stickers</Link>
-              {['Showroom', 'Culture', 'Projects'].map((item) => (
-                <a key={item} href="#" className="flex min-h-11 items-center font-impact text-4xl uppercase tracking-tighter transition-all hover:text-stroke sm:text-5xl md:text-6xl [@media(max-height:520px)]:text-3xl" onClick={() => setIsMenuOpen(false)}>
-                  {item}
-                </a>
+              {primaryLinks.map(({ label, to }) => (
+                <Link key={label} to={to} className="flex min-h-11 items-center font-impact text-4xl uppercase tracking-tighter transition-all hover:text-stroke sm:text-5xl md:text-6xl [@media(max-height:520px)]:text-3xl" onClick={() => setIsMenuOpen(false)}>
+                  {label}
+                </Link>
               ))}
               <Link to="/quote" className="mt-3 flex min-h-14 w-full items-center justify-center rounded-full bg-lab-red px-6 text-center font-sans text-xs font-bold uppercase tracking-widest text-white shadow-lg transition-all duration-300 hover:bg-lab-black [@media(max-height:520px)]:mt-1 [@media(max-height:520px)]:min-h-11" onClick={() => setIsMenuOpen(false)}>
                 Begin Your Build

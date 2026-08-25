@@ -33,8 +33,9 @@
 }
 
 @theme {
+  /* Brand guide roles: Inter = body/UI, Anton = impact display, Space Grotesk = editorial accents. */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Anton", sans-serif;
   --font-impact: "Anton", sans-serif;
   --font-accent: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Space Grotesk", ui-monospace, monospace;
@@ -47,50 +48,16 @@
   --color-lab-line: rgba(16, 24, 32, 0.1);
 }
 
-.font-display {
-  letter-spacing: -0.025em !important;
-  word-spacing: 0.02em;
-}
-
-h1.font-display {
+.font-display,
+.font-impact {
   font-family: var(--font-impact);
-  font-size: clamp(3.5rem, 5.6vw, 6.25rem) !important;
   font-synthesis: none;
-  font-weight: 400;
+  font-style: normal;
+  font-weight: 400 !important;
   letter-spacing: 0.01em !important;
-  line-height: 0.92 !important;
-  word-spacing: 0.015em;
-}
-
-h1.font-display .font-display {
-  font-family: var(--font-impact);
-  font-synthesis: none;
-  font-weight: 400;
-  letter-spacing: inherit !important;
-  word-spacing: inherit;
-}
-
-h1.font-display .normal-case {
-  font-weight: 400;
-  text-transform: uppercase !important;
-}
-
-h2.font-display {
-  line-height: 0.96 !important;
-}
-
-h3.font-display,
-h4.font-display {
-  letter-spacing: -0.015em !important;
-  line-height: 1.06 !important;
-}
-
-.font-display.normal-case {
-  font-weight: 500;
 }
 
 .font-impact {
-  letter-spacing: 0.01em !important;
   line-height: 1;
 }
 

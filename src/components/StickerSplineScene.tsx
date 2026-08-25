@@ -884,8 +884,7 @@ export default function StickerSplineScene() {
           <div className="w-full max-w-[44rem]">
             <p className="font-accent text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-lab-red sm:text-xs lg:text-sm">Custom stickers</p>
             <h2
-              className="mt-3 font-bold uppercase text-[clamp(4.1rem,17vw,4.75rem)] sm:text-[clamp(4.25rem,min(8.25vw,16vh),10rem)]"
-              style={{ fontFamily: 'var(--font-display)', lineHeight: 0.84, letterSpacing: '-0.045em' }}
+              className="mt-3 font-impact font-normal uppercase text-[clamp(4.1rem,17vw,4.75rem)] leading-[0.84] sm:text-[clamp(4.25rem,min(8.25vw,16vh),10rem)]"
             >
               <span className="block whitespace-nowrap">Make it</span>
               <span className="block whitespace-nowrap">stick.</span>
