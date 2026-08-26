@@ -122,9 +122,18 @@ export default function AboutPage() {
 
         <div className="relative z-10 mx-auto w-full max-w-7xl">
           <p className="mb-7 font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">About Merchcraft</p>
-          <h1 className="font-display text-[clamp(3.1rem,11vw,11rem)] font-bold uppercase leading-[0.82] tracking-tighter">
-            <span className="-mb-[0.08em] block overflow-hidden pb-[0.08em] pr-[0.06em]"><span className="about-hero-word block">The people</span></span>
-            <span className="-mb-[0.08em] block overflow-hidden pb-[0.08em] pr-[0.06em]"><span className="about-hero-word block">behind <span className="font-display normal-case text-lab-gold">the work.</span></span></span>
+          <h1 className="max-w-[11.5ch] font-display text-[clamp(3.2rem,8.25vw,8.5rem)] font-bold uppercase leading-[0.9] tracking-tighter">
+            <span className="block overflow-hidden pb-[0.08em] pr-[0.06em]">
+              <span className="about-hero-word block whitespace-nowrap">The people</span>
+            </span>
+            <span className="mt-[0.04em] flex flex-col sm:flex-row sm:items-baseline sm:gap-[0.2em]">
+              <span className="block overflow-hidden pb-[0.08em] pr-[0.06em]">
+                <span className="about-hero-word block whitespace-nowrap">Behind</span>
+              </span>
+              <span className="block overflow-hidden pb-[0.1em] pr-[0.08em]">
+                <span className="about-hero-word block whitespace-nowrap text-[0.62em] leading-none text-lab-gold sm:text-[0.54em]">The work.</span>
+              </span>
+            </span>
           </h1>
           <div className="mt-9 flex flex-col gap-6 border-t border-white/35 pt-7 sm:flex-row sm:items-end sm:justify-between">
             <p className="max-w-2xl text-base font-medium leading-relaxed text-white/72 sm:text-lg">We help brands turn ideas into apparel through thoughtful production, close collaboration, and careful finishing.</p>

@@ -400,7 +400,7 @@ const InteractiveLab = ({ imageSrc = LAB_SHOWROOM_IMAGE }: { imageSrc?: string }
 
   return (
     <div
-      className={`group relative isolate aspect-[4/5] w-full overflow-hidden bg-lab-black sm:aspect-[16/10] lg:aspect-video ${mobileInspection ? 'touch-none cursor-grab active:cursor-grabbing' : 'touch-pan-y'} ${hasFinePointer ? 'cursor-none' : ''}`}
+      className={`group relative isolate aspect-[4/5] w-full overflow-hidden bg-lab-black sm:aspect-[16/10] lg:aspect-video ${mobileInspection ? 'touch-none cursor-grab active:cursor-grabbing' : 'touch-pan-y'} ${hasFinePointer ? (activeHotspot === null ? 'cursor-none' : 'cursor-auto') : ''}`}
       ref={containerRef}
       onPointerDown={beginTouchInspection}
       onPointerMove={handlePointerMove}
@@ -520,7 +520,7 @@ const InteractiveLab = ({ imageSrc = LAB_SHOWROOM_IMAGE }: { imageSrc?: string }
           role="region"
           aria-live="polite"
           aria-labelledby="lab-hotspot-detail-title"
-          className={`fixed bottom-24 left-4 right-4 z-[100] max-h-[calc(100dvh-7rem)] overflow-y-auto border border-lab-line bg-white p-5 shadow-[0_24px_60px_rgba(0,0,0,0.32)] sm:w-[min(24rem,calc(100%-3rem))] md:p-6 ${detailOpensOnRight ? 'sm:left-auto sm:right-6' : 'sm:left-6 sm:right-auto'}`}
+          className={`fixed bottom-24 left-4 right-4 z-[100] max-h-[calc(100dvh-7rem)] cursor-auto overflow-y-auto border border-lab-line bg-white p-5 shadow-[0_24px_60px_rgba(0,0,0,0.32)] sm:w-[min(24rem,calc(100%-3rem))] md:p-6 ${detailOpensOnRight ? 'sm:left-auto sm:right-6' : 'sm:left-6 sm:right-auto'}`}
         >
           <div className="mb-3 flex items-center justify-between gap-4">
             <span className="font-accent text-[11px] font-bold uppercase tracking-[0.14em] text-lab-red">Inside the lab</span>
@@ -528,7 +528,7 @@ const InteractiveLab = ({ imageSrc = LAB_SHOWROOM_IMAGE }: { imageSrc?: string }
               type="button"
               aria-label="Close selected showroom area"
               onClick={() => dismissHotspot(false)}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-lab-black/15 bg-lab-white text-lab-black transition hover:border-lab-red hover:bg-lab-red hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lab-red"
+              className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-lab-black/15 bg-lab-white text-lab-black transition hover:border-lab-red hover:bg-lab-red hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lab-red"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -610,51 +610,52 @@ const PantoneFan = () => {
   }, [colors.length, selectDesktopSwatch]);
 
   const desktopAngles = [-48, -36, -24, -12, 0, 12, 24, 36, 48];
-  const mobileAngles = [-48, -36, -24, -12, 0, 12, 24, 36, 48];
+  const mobileAngles = [-46, -34.5, -23, -11.5, 0, 11.5, 23, 34.5, 46];
 
   return (
     <div className="relative w-full">
       <div className="lg:hidden">
-        <div className="mx-auto max-w-[23rem]">
+        <div className="mx-auto max-w-[24rem]">
           <div
             ref={mobileFanRef}
-            className="relative mx-auto h-[18rem] w-full overflow-visible"
+            className="relative mx-auto h-[17rem] w-full overflow-visible"
             role="group"
             aria-label="Color swatch fan. Tap any swatch to inspect it."
           >
-            <div className="pointer-events-none absolute bottom-11 left-1/2 h-56 w-56 -translate-x-1/2 rounded-full border border-lab-black/[0.06]" />
-            <div className="pointer-events-none absolute bottom-[4.25rem] left-1/2 h-44 w-44 -translate-x-1/2 rounded-full border border-lab-black/[0.045]" />
+            <div className="pointer-events-none absolute bottom-5 left-1/2 h-60 w-60 -translate-x-1/2 rounded-full border border-lab-black/[0.055]" />
+            <div className="pointer-events-none absolute bottom-[3.2rem] left-1/2 h-44 w-44 -translate-x-1/2 rounded-full border border-lab-black/[0.04]" />
             {colors.map((color, i) => {
               const isSelected = selectedIndex === i;
               const hasEntered = mobileFanIsInView || Boolean(shouldReduceMotion);
+              const slotIndex = (i - selectedIndex + 4 + colors.length) % colors.length;
 
               return (
                 <div
                   key={`mobile-fan-${color.hex}`}
-                  className="absolute bottom-[4.1rem] left-1/2 h-[11.6rem] w-[3.8rem] -translate-x-1/2"
-                  style={{ zIndex: isSelected ? 40 : 12 + i }}
+                  className="pointer-events-none absolute bottom-[3.15rem] left-1/2 h-[11.8rem] w-[3.7rem] -translate-x-1/2"
+                  style={{ zIndex: isSelected ? 40 : 16 + (4 - Math.abs(slotIndex - 4)) }}
                 >
                   <motion.div
                     initial={false}
                     animate={hasEntered
-                      ? { opacity: 1, rotate: mobileAngles[i], y: isSelected ? -14 : 0, scale: isSelected ? 1.055 : 1 }
+                      ? { opacity: 1, rotate: mobileAngles[slotIndex], y: isSelected ? -10 : 0, scale: isSelected ? 1.025 : 1 }
                       : { opacity: 0, rotate: 0, y: 42, scale: 0.94 }}
                     transition={shouldReduceMotion
                       ? { duration: 0 }
-                      : { delay: !mobileFanSettled && mobileFanIsInView ? i * 0.035 : 0, type: 'spring', stiffness: 190, damping: 23 }}
-                    className={`pointer-events-none absolute inset-0 origin-[50%_94%] overflow-hidden rounded-xl border bg-white p-1.5 text-left shadow-[0_12px_26px_rgba(16,24,32,0.2)] will-change-transform ${isSelected ? 'border-lab-black/45' : 'border-lab-black/10'}`}
+                      : { delay: !mobileFanSettled && mobileFanIsInView ? i * 0.035 : 0, type: 'spring', stiffness: 205, damping: 24 }}
+                    className={`pointer-events-none absolute inset-0 origin-[50%_96%] overflow-hidden rounded-[0.9rem] border bg-white p-1.5 text-left shadow-[0_12px_28px_rgba(16,24,32,0.18)] will-change-transform ${isSelected ? 'border-lab-black/50 ring-1 ring-lab-black/10' : 'border-lab-black/10'}`}
                   >
-                    <span className={`relative block h-[77%] rounded-lg border ${color.hex === '#FFFFFF' ? 'border-lab-black/10' : 'border-transparent'}`} style={{ backgroundColor: color.hex }}>
+                    <span className={`relative block h-[79%] rounded-[0.65rem] border ${color.hex === '#FFFFFF' ? 'border-lab-black/10' : 'border-transparent'}`} style={{ backgroundColor: color.hex }}>
                       <span className={`absolute left-2 top-2 font-accent text-[8px] font-semibold uppercase tracking-[0.08em] ${color.darkInk ? 'text-lab-black/50' : 'text-white/75'}`}>{String(i + 1).padStart(2, '0')}</span>
                     </span>
-                    <span className="mt-2 block truncate px-0.5 font-accent text-[7px] font-semibold uppercase tracking-[0.04em] text-lab-black/55">{color.code}</span>
+                    <span className="mt-1.5 block truncate px-0.5 font-accent text-[7px] font-semibold uppercase tracking-[0.04em] text-lab-black/55">{color.code}</span>
                     <button
                       type="button"
                       aria-pressed={isSelected}
                       aria-describedby="mobile-color-fan-status"
                       aria-label={`Select ${color.name}, Pantone ${color.code}`}
                       onClick={() => setSelectedIndex(i)}
-                      className="pointer-events-auto absolute left-[14%] right-[14%] top-1 h-14 cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lab-red"
+                      className="pointer-events-auto absolute left-[12%] right-[12%] top-1 h-14 cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lab-red"
                     >
                       <span className="sr-only">Select {color.name}</span>
                     </button>
@@ -662,50 +663,65 @@ const PantoneFan = () => {
                 </div>
               );
             })}
-            <div className="pointer-events-none absolute bottom-[3.8rem] left-1/2 z-50 h-3 w-3 -translate-x-1/2 rounded-full bg-lab-black shadow-[0_0_0_7px_rgba(16,24,32,0.09)]" />
-            <div id="mobile-color-fan-status" aria-live="polite" className="absolute inset-x-3 bottom-0 z-[55] flex min-h-12 items-center justify-between gap-4 rounded-full border border-lab-line bg-white/95 px-5 shadow-[0_12px_30px_rgba(16,24,32,0.14)] backdrop-blur-sm">
-              <span className="flex min-w-0 items-center gap-3">
-                <span className="h-3.5 w-3.5 shrink-0 rounded-full border border-lab-black/10" style={{ backgroundColor: selectedColor.hex }} aria-hidden="true" />
-                <span className="truncate font-accent text-[10px] font-semibold uppercase tracking-[0.08em] text-lab-black">{selectedColor.name}</span>
-              </span>
-              <span className="shrink-0 font-sans text-[10px] font-bold uppercase tracking-[0.08em] text-lab-black/45">{selectedColor.code}</span>
-            </div>
+            <div className="pointer-events-none absolute bottom-[2.8rem] left-1/2 z-50 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-[3px] border-white bg-lab-gold shadow-[0_0_0_2px_rgba(16,24,32,0.28),0_8px_18px_rgba(16,24,32,0.2)]" />
           </div>
 
           <motion.div
             key={selectedColor.hex}
+            id="mobile-color-fan-status"
+            aria-live="polite"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-6 overflow-hidden rounded-2xl border border-lab-black/10 bg-lab-black p-2 shadow-[0_18px_42px_rgba(16,24,32,0.16)]"
+            className="-mt-1 grid grid-cols-[0.78fr_1.22fr] overflow-hidden rounded-[1.4rem] border border-lab-black/10 bg-lab-black p-2 shadow-[0_18px_42px_rgba(16,24,32,0.14)]"
           >
-            <div className="h-24 rounded-xl border border-white/10" style={{ backgroundColor: selectedColor.hex }} />
-            <div className="mt-2 rounded-xl bg-white p-4 text-lab-black">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-accent text-base font-semibold leading-tight">{selectedColor.name}</p>
-                  <p className="mt-1 font-sans text-[11px] font-bold uppercase tracking-[0.1em] text-lab-black/45">Pantone {selectedColor.code}</p>
-                </div>
-                <span className="font-accent text-[11px] font-semibold uppercase tracking-[0.08em] text-lab-black/45">{selectedColor.hex}</span>
+            <div className={`min-h-[6.4rem] rounded-[1rem] border ${selectedColor.hex === '#FFFFFF' ? 'border-lab-black/15' : 'border-white/10'}`} style={{ backgroundColor: selectedColor.hex }} />
+            <div className="ml-2 flex min-w-0 flex-col justify-between rounded-[1rem] bg-white p-4 text-lab-black">
+              <span className="font-sans text-[9px] font-bold uppercase tracking-[0.14em] text-lab-black/35">Selected swatch</span>
+              <div>
+                <p className="truncate font-accent text-sm font-semibold leading-tight">{selectedColor.name}</p>
+                <p className="mt-1 font-sans text-[10px] font-bold uppercase tracking-[0.09em] text-lab-black/45">Pantone {selectedColor.code} · {selectedColor.hex}</p>
               </div>
             </div>
           </motion.div>
+
+          <div className="mt-3 grid grid-cols-3 gap-2" aria-label="Choose a color swatch">
+            {colors.map((color, i) => {
+              const isSelected = selectedIndex === i;
+
+              return (
+                <button
+                  key={`mobile-color-tile-${color.hex}`}
+                  type="button"
+                  aria-pressed={isSelected}
+                  aria-describedby="mobile-color-fan-status"
+                  onClick={() => setSelectedIndex(i)}
+                  className={`relative flex min-h-14 cursor-pointer items-end rounded-xl border p-3 text-left shadow-[0_5px_14px_rgba(16,24,32,0.08)] transition-transform active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lab-red ${isSelected ? 'ring-2 ring-lab-black ring-offset-2' : ''} ${color.hex === '#FFFFFF' ? 'border-lab-black/15' : 'border-transparent'}`}
+                  style={{ backgroundColor: color.hex }}
+                  aria-label={`Select ${color.name}, Pantone ${color.code}`}
+                >
+                  <span className={`font-sans text-[9px] font-bold uppercase tracking-[0.05em] ${color.darkInk ? 'text-lab-black/65' : 'text-white/85'}`}>{color.code}</span>
+                  {isSelected && <span className={`absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full border-2 ${color.darkInk ? 'border-lab-black/55' : 'border-white/90'}`} aria-hidden="true" />}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       <div
         ref={desktopFanRef}
-        className="relative hidden h-[29rem] min-h-[464px] w-full items-center justify-center overflow-visible lg:flex"
+        className="relative hidden h-[30rem] min-h-[480px] w-full items-center justify-center overflow-visible lg:flex"
         role="group"
         aria-label="Color swatch fan. Select a swatch or use the arrow keys to move between colors."
       >
-        <div className="pointer-events-none absolute bottom-8 left-[63%] h-[24rem] w-[24rem] -translate-x-1/2 rounded-full border border-lab-black/[0.055]" />
-        <div className="pointer-events-none absolute bottom-16 left-[63%] h-[19rem] w-[19rem] -translate-x-1/2 rounded-full border border-lab-black/[0.04]" />
+        <div className="pointer-events-none absolute bottom-7 left-1/2 h-[25rem] w-[25rem] -translate-x-1/2 rounded-full border border-lab-black/[0.055]" />
+        <div className="pointer-events-none absolute bottom-[4.25rem] left-1/2 h-[19rem] w-[19rem] -translate-x-1/2 rounded-full border border-lab-black/[0.04]" />
 
         <div
           id="desktop-color-fan-status"
           aria-live="polite"
-          className="absolute bottom-5 left-0 z-[80] flex min-w-[17rem] items-center gap-3 rounded-r-full border border-lab-line bg-white/[0.96] py-3 pl-5 pr-6 shadow-[0_14px_34px_rgba(16,24,32,0.14)] backdrop-blur-sm xl:min-w-[19rem]"
+          className="absolute left-1/2 top-1 z-[80] flex min-w-[18rem] -translate-x-1/2 items-center justify-center gap-3 rounded-full border border-lab-line bg-white/[0.96] px-6 py-3 shadow-[0_14px_34px_rgba(16,24,32,0.12)] backdrop-blur-sm xl:min-w-[20rem]"
         >
           <span className="h-4 w-4 shrink-0 rounded-full border border-lab-black/10" style={{ backgroundColor: selectedColor.hex }} aria-hidden="true" />
           <span className="min-w-0">
@@ -716,31 +732,22 @@ const PantoneFan = () => {
 
         {colors.map((color, i) => {
           const isSelected = selectedIndex === i;
-          const rotation = isSelected ? -76 : desktopAngles[i];
+          const slotIndex = (i - selectedIndex + 4 + colors.length) % colors.length;
+          const rotation = desktopAngles[slotIndex];
           const hasEntered = fanIsInView || Boolean(shouldReduceMotion);
 
           return (
             <div
               key={color.hex}
-              className="pointer-events-none absolute bottom-[4.65rem] left-[63%] h-[18.5rem] w-[6rem] -translate-x-1/2 xl:h-[20rem] xl:w-[6.4rem]"
-              style={{ zIndex: isSelected ? 60 : 15 + i }}
+              className="pointer-events-none absolute bottom-[4.35rem] left-1/2 h-[19.5rem] w-[6.1rem] -translate-x-1/2 xl:h-[20.5rem] xl:w-[6.5rem]"
+              style={{ zIndex: isSelected ? 60 : 20 + (4 - Math.abs(slotIndex - 4)) }}
             >
-              <motion.button
-                ref={(node) => {
-                  desktopSwatchRefs.current[i] = node;
-                }}
-                type="button"
-                tabIndex={isSelected ? 0 : -1}
-                aria-pressed={isSelected}
-                aria-describedby="desktop-color-fan-status"
-                aria-label={`Select ${color.name}, Pantone ${color.code}`}
-                onClick={() => selectDesktopSwatch(i)}
-                onKeyDown={(event) => handleDesktopSwatchKeyDown(event, i)}
+              <motion.div
                 initial={false}
                 animate={hasEntered
-                  ? { opacity: 1, rotate: rotation, y: isSelected ? -10 : 0, scale: isSelected ? 1.035 : 1 }
+                  ? { opacity: 1, rotate: rotation, y: isSelected ? -13 : 0, scale: isSelected ? 1.025 : 1 }
                   : { opacity: 0, rotate: 0, y: 90, scale: 0.94 }}
-                whileHover={shouldReduceMotion ? undefined : { y: isSelected ? -15 : -9, scale: isSelected ? 1.045 : 1.025 }}
+                whileHover={shouldReduceMotion ? undefined : { y: isSelected ? -17 : -8, scale: isSelected ? 1.035 : 1.02 }}
                 whileTap={shouldReduceMotion ? undefined : { scale: 0.985 }}
                 transition={shouldReduceMotion
                   ? { duration: 0 }
@@ -751,11 +758,11 @@ const PantoneFan = () => {
                       damping: 22,
                       mass: 0.82
                     }}
-                className={`pointer-events-auto absolute inset-0 flex origin-[50%_94%] cursor-pointer flex-col overflow-hidden rounded-xl border bg-white p-1.5 text-left shadow-[0_18px_42px_rgba(16,24,32,0.22)] will-change-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lab-red ${isSelected ? 'border-lab-black/40' : 'border-lab-black/10'}`}
+                className={`pointer-events-none absolute inset-0 flex origin-[50%_96%] flex-col overflow-hidden rounded-[1rem] border bg-white p-1.5 text-left shadow-[0_18px_42px_rgba(16,24,32,0.2)] will-change-transform focus-within:outline focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-lab-red ${isSelected ? 'border-lab-black/50 ring-1 ring-lab-black/10' : 'border-lab-black/10'}`}
                 style={{ willChange: shouldReduceMotion ? 'auto' : 'transform, opacity' }}
               >
                 <span
-                  className={`relative flex-1 overflow-hidden rounded-lg border ${color.hex === '#FFFFFF' ? 'border-lab-black/10' : 'border-transparent'}`}
+                  className={`relative flex-1 overflow-hidden rounded-[0.75rem] border ${color.hex === '#FFFFFF' ? 'border-lab-black/10' : 'border-transparent'}`}
                   style={{ backgroundColor: color.hex }}
                   aria-hidden="true"
                 >
@@ -768,11 +775,26 @@ const PantoneFan = () => {
                   <span className="truncate font-accent text-[8px] font-semibold uppercase leading-tight tracking-[0.03em]">{color.name}</span>
                   <span className="mt-1 font-sans text-[7px] font-bold uppercase tracking-[0.1em] text-lab-black/40">{color.code}</span>
                 </span>
-              </motion.button>
+                <button
+                  ref={(node) => {
+                    desktopSwatchRefs.current[i] = node;
+                  }}
+                  type="button"
+                  tabIndex={isSelected ? 0 : -1}
+                  aria-pressed={isSelected}
+                  aria-describedby="desktop-color-fan-status"
+                  aria-label={`Select ${color.name}, Pantone ${color.code}`}
+                  onClick={() => selectDesktopSwatch(i)}
+                  onKeyDown={(event) => handleDesktopSwatchKeyDown(event, i)}
+                  className="pointer-events-auto absolute left-[10%] right-[10%] top-1 h-20 cursor-pointer rounded-[0.75rem] focus-visible:outline-none"
+                >
+                  <span className="sr-only">Select {color.name}</span>
+                </button>
+              </motion.div>
             </div>
           );
         })}
-        <div className="pointer-events-none absolute bottom-[4.35rem] left-[63%] z-[70] h-3 w-3 -translate-x-1/2 rounded-full bg-lab-black shadow-[0_0_0_8px_rgba(16,24,32,0.09)]" />
+        <div className="pointer-events-none absolute bottom-[3.95rem] left-1/2 z-[70] h-4 w-4 -translate-x-1/2 rounded-full border-[3px] border-white bg-lab-gold shadow-[0_0_0_2px_rgba(16,24,32,0.3),0_10px_24px_rgba(16,24,32,0.2)]" />
       </div>
     </div>
   );

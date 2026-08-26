@@ -60,8 +60,10 @@ export default function ServicesPage() {
         <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-[1.05fr_0.95fr] md:items-center md:gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-12">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}>
             <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-red">Our services</p>
-            <h1 className="mt-7 font-display text-[clamp(4rem,8.5vw,8.5rem)] font-bold uppercase leading-[0.84] tracking-tighter">
-              Apparel made<br />for <span className="font-display normal-case text-lab-gold">your brand.</span>
+            <h1 className="mt-7 max-w-[9ch] font-display text-[clamp(4.25rem,7.5vw,7.5rem)] font-normal uppercase leading-none">
+              <span className="block">Apparel</span>
+              <span className="mt-[0.1em] block text-[0.7em] leading-none">Made for</span>
+              <span className="mt-[0.14em] block whitespace-nowrap text-[0.58em] leading-none text-lab-gold">Your brand.</span>
             </h1>
             <p className="mt-9 max-w-xl text-base font-medium leading-relaxed text-lab-black/60 sm:text-lg">
               From screen printing and embroidery to finishing and fulfillment, we help turn your ideas into apparel people want to wear.

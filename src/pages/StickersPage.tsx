@@ -443,8 +443,10 @@ export default function StickersPage() {
         <div className="mx-auto grid max-w-7xl gap-14 md:grid-cols-[1.05fr_0.95fr] md:items-center md:gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-14">
           <div className="sticker-hero-copy relative z-10">
             <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">Custom stickers</p>
-            <h1 className="mt-7 font-display text-[clamp(4rem,9vw,9rem)] font-bold uppercase leading-[0.84] tracking-tighter">
-              Make your<br />brand <span className="font-display normal-case text-lab-gold">stick.</span>
+            <h1 className="mt-7 max-w-[8ch] font-display text-[clamp(4.25rem,7.6vw,7.75rem)] font-normal uppercase leading-none">
+              <span className="block text-[0.62em] leading-none">Make your</span>
+              <span className="mt-[0.1em] block">Brand</span>
+              <span className="mt-[0.08em] block text-[0.72em] leading-none text-lab-gold">Stick.</span>
             </h1>
             <p className="mt-9 max-w-xl text-base font-medium leading-relaxed text-white/72 sm:text-lg">
               Custom stickers for packaging, events, merch drops, and more. Share the details and we’ll send an official quote.
