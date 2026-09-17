@@ -119,55 +119,53 @@ const LAB_SHOWROOM_IMAGE = "/assets/images/lab-showroom-v3.webp";
 const LAB_HOTSPOTS: LabHotspot[] = [
   {
     id: 1,
-    x: 23,
-    y: 61,
+    x: 17,
+    y: 66,
     mobileVisible: false,
-    title: "Blank Library",
-    description: "Garment weights, washes, and silhouettes are compared in person before the right foundation moves into production."
+    title: "Screen Archive",
+    description: "Production screens are catalogued and kept close to the ink library for repeat work and color reference."
   },
   {
     id: 2,
-    x: 38,
-    y: 32,
-    mobileX: 18,
-    mobileY: 32,
-    title: "Reference Wall",
-    description: "Garment references, print studies, and past builds help the team align on a clear visual direction."
+    x: 27,
+    y: 24,
+    mobileVisible: false,
+    title: "Ink References",
+    description: "Labeled ink mixes create a working color archive the team can return to across production runs."
   },
   {
     id: 3,
-    x: 56,
-    y: 64,
-    mobileX: 58,
-    mobileY: 64,
-    title: "Thread and Trim",
-    description: "Thread colors, labels, and finishing details are reviewed together so every element feels intentional."
+    x: 50,
+    y: 36,
+    mobileX: 52,
+    mobileY: 34,
+    title: "Ink Library",
+    description: "Real production colors are stored, labeled, and organized for accurate matching and repeatable results."
   },
   {
     id: 4,
-    x: 50,
-    y: 72,
-    mobileX: 45,
-    mobileY: 72,
-    title: "Development Table",
-    description: "Print samples, trims, labels, and color chips are reviewed together before a collection moves forward."
+    x: 45,
+    y: 74,
+    mobileX: 46,
+    mobileY: 73,
+    title: "Blank Inventory",
+    description: "Incoming garments are organized beside the ink library so approved builds can move into production efficiently."
   },
   {
     id: 5,
-    x: 69,
-    y: 49,
-    mobileX: 87,
-    mobileY: 49,
-    title: "Finishing Review",
-    description: "Placement, hand feel, and final construction are checked closely before a finished garment leaves the lab."
+    x: 83,
+    y: 58,
+    mobileVisible: false,
+    title: "Finished Garments",
+    description: "Completed pieces stay organized for quality review, packing, and delivery."
   },
   {
     id: 6,
-    x: 82,
-    y: 25,
+    x: 78,
+    y: 18,
     mobileVisible: false,
-    title: "Stock Shelves",
-    description: "Organized blanks and finished garments keep projects moving smoothly from production into packing."
+    title: "Production Rail",
+    description: "Finished apparel is kept on the rail for final inspection before it moves into fulfillment."
   }
 ];
 
@@ -425,7 +423,7 @@ const InteractiveLab = ({ imageSrc = LAB_SHOWROOM_IMAGE }: { imageSrc?: string }
       <img
         ref={baseImageRef}
         src={imageSrc}
-        alt="Merchcraft Apparel Lab Showroom"
+        alt="Merchcraft production archive with printing screens, ink inventory, and finished garments"
         className="relative z-0 h-full w-full select-none object-cover object-[54%_center] sm:object-center"
         referrerPolicy="no-referrer"
         draggable={false}
@@ -1067,11 +1065,11 @@ export default function HomePage() {
           >
             <img
               src="/assets/images/home-hero.jpg"
-              alt="Studio Background"
+              alt="Merchcraft proof review, screen-printing archive, and finished garments"
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
-            <div className="absolute inset-0 bg-black/40" />
+            <div className="absolute inset-0 bg-black/50 sm:bg-black/45" />
           </motion.div>
 
           <div className="relative z-10 text-center px-8 max-w-4xl mx-auto">

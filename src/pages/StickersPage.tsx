@@ -61,31 +61,31 @@ const materials = [
     name: 'Matte',
     note: 'A soft, low-shine direction for an understated finish.',
     image: '/assets/images/stickers-matte-v2.webp',
-    alt: 'A matte tiger-head sticker applied to a cream reusable bottle',
+    alt: 'A matte full-color print detail from approved Merchcraft client work',
   },
   {
     name: 'Gloss',
     note: 'A polished direction with stronger light and color reflection.',
     image: '/assets/images/stickers-gloss-v2.webp',
-    alt: 'A glossy rose sticker applied to a black protective case',
+    alt: 'A raised high-contrast finish detail from approved Merchcraft client work',
   },
   {
     name: 'Clear',
     note: 'A transparent-base direction that lets the surface show through.',
     image: '/assets/images/stickers-clear-v2.webp',
-    alt: 'A transparent orange-blossom sticker applied to a glass bottle',
+    alt: 'A light woven label detail from approved Merchcraft client work',
   },
   {
     name: 'Holographic',
     note: 'A reflective direction with a shifting, prismatic surface.',
     image: '/assets/images/stickers-holographic-v2.webp',
-    alt: 'A holographic lightning-bolt sticker applied to a black laptop',
+    alt: 'A colorful reflective patch detail from approved Merchcraft client work',
   },
   {
     name: 'Recommend one',
     note: 'Share the artwork and intended use and we can help narrow the direction.',
     image: '/assets/images/stickers-hero-v2.webp',
-    alt: 'A collection of custom die-cut stickers, sticker sheets, and label rolls',
+    alt: 'A grid of real embroidered patch and label references from approved Merchcraft client work',
   },
 ];
 
@@ -462,7 +462,7 @@ export default function StickersPage() {
           </div>
 
           <div ref={heroCardRef} className="sticker-hero-card relative overflow-hidden bg-white/5 shadow-[0_30px_90px_rgba(0,0,0,0.35)] will-change-transform">
-            <img src="/assets/images/stickers-hero-v2.webp" alt="A studio arrangement of custom die-cut stickers, sticker sheets, and label rolls" className="aspect-[3/2] h-full w-full object-cover" />
+            <img src="/assets/images/stickers-hero-v2.webp" alt="A grid of real embroidered patch and label references from approved Merchcraft client work" className="aspect-[3/2] h-full w-full object-cover" />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-lab-black/30 via-transparent to-white/5" />
           </div>
         </div>
@@ -542,7 +542,7 @@ export default function StickersPage() {
               <h2 className="mt-6 font-display text-[clamp(3.2rem,6vw,6.5rem)] font-bold uppercase tracking-tighter">From idea to<br />official quote.</h2>
             </div>
             <div className="overflow-hidden">
-              <img src="/assets/images/stickers-process-v2.webp" alt="Hands comparing a sticker proof with a finished die-cut sample at a workbench" loading="lazy" className="aspect-[16/9] h-full w-full object-cover" />
+              <img src="/assets/images/stickers-process-v2.webp" alt="Merchcraft collaborators reviewing artwork and production details" loading="lazy" className="aspect-[16/9] h-full w-full object-cover" />
             </div>
           </div>
 

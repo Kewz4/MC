@@ -66,7 +66,7 @@ export default function ContactPage() {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, scale: 1.035 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }} className="overflow-hidden bg-lab-black">
-            <img src="/assets/images/contact-planning-v2.webp" alt="Two collaborators planning a custom apparel project around a worktable" className="aspect-[4/3] h-full w-full object-cover object-center" />
+            <img src="/assets/images/contact-planning-v2.webp" alt="Two collaborators reviewing custom apparel artwork at a workstation" className="aspect-[4/3] h-full w-full object-cover object-center" />
           </motion.div>
         </div>
       </section>

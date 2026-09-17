@@ -13,28 +13,28 @@ const processSteps = [
     title: 'Start with the idea.',
     copy: 'We get clear on the audience, use case, artwork, quantity, timing, and what the piece needs to communicate.',
     image: '/assets/images/about-planning-v2.webp',
-    alt: 'Two collaborators arranging garments, fabric swatches, thread, and color references',
+    alt: 'Merchcraft apparel concepts and product references arranged for planning',
   },
   {
     index: '02',
     title: 'Choose the right method.',
     copy: 'Garment, print or stitch method, placement, scale, and color are considered together so the result feels intentional.',
     image: '/assets/images/about-method-v3.webp',
-    alt: 'Screen-print and embroidery samples being compared on black fabric',
+    alt: 'A client apparel line plan showing coordinated garments and placements',
   },
   {
     index: '03',
     title: 'Finish every detail.',
     copy: 'Labels, hangtags, sewing, folding, bagging, and barcodes turn decorated apparel into a complete product.',
     image: '/assets/images/about-finishing-v2.webp',
-    alt: 'A finished black sweatshirt being folded into tissue for packing',
+    alt: 'Finished garments being checked and packed for fulfillment',
   },
   {
     index: '04',
     title: 'Prepare for delivery.',
     copy: 'The order is checked against the approved proof and prepared for delivery, launch, or an ongoing program.',
     image: '/assets/images/quote-still-life-v2.webp',
-    alt: 'Folded apparel, a cap, tags, and packaging prepared for delivery',
+    alt: 'A finished printed shirt folded and prepared for delivery',
   },
 ];
 
@@ -117,7 +117,7 @@ export default function AboutPage() {
   return (
     <main ref={pageRef} className="bg-white">
       <section ref={heroRef} className="relative flex min-h-[94svh] items-end overflow-hidden bg-lab-black px-6 pb-12 pt-32 text-white sm:px-8 lg:px-10 lg:pb-16">
-        <img src="/assets/images/about-hero-v3.webp" alt="Merchcraft makers working across printing, embroidery, and finishing stations" className="about-hero-image absolute inset-0 h-[110%] w-full object-cover object-center" />
+        <img src="/assets/images/about-hero-v3.webp" alt="Merchcraft collaborators reviewing apparel artwork and production details" className="about-hero-image absolute inset-0 h-[110%] w-full object-cover object-center" />
         <div className="absolute inset-0 bg-gradient-to-b from-lab-black/20 via-lab-black/10 to-lab-black/90" />
 
         <div className="relative z-10 mx-auto w-full max-w-7xl">
@@ -218,7 +218,7 @@ export default function AboutPage() {
       <section className="bg-lab-black px-6 py-20 text-white sm:px-8 lg:px-10 lg:py-28">
         <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div className="overflow-hidden">
-            <img src="/assets/images/about-team-v3.webp" alt="Merchcraft team reviewing a finished garment and fabric details" loading="lazy" className="aspect-[4/3] h-full w-full object-cover" />
+            <img src="/assets/images/about-team-v3.webp" alt="Client apparel produced by Merchcraft shown in real-world use" loading="lazy" className="aspect-[4/3] h-full w-full object-cover" />
           </div>
           <div className="lg:pl-8">
             <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">The team behind the work</p>

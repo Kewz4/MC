@@ -75,7 +75,7 @@ export default function ServicesPage() {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, scale: 1.04 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }} className="overflow-hidden bg-lab-white">
-            <img src="/assets/images/services-still-life-v2.webp" alt="Premium blank apparel, embroidery thread, hangtag, and screen-printing tools" className="aspect-[4/3] h-full w-full object-cover" />
+            <img src="/assets/images/services-still-life-v2.webp" alt="A Merchcraft-produced tee, hoodie, and embroidered cap" className="aspect-[4/3] h-full w-full object-cover" />
           </motion.div>
         </div>
       </section>
@@ -152,14 +152,14 @@ export default function ServicesPage() {
               Explore custom stickers <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </Link>
           </div>
-          <img src="/assets/images/stickers-materials-v1.webp" alt="A close-up comparison of custom sticker surface directions" loading="lazy" className="aspect-[4/3] h-full w-full object-cover lg:aspect-auto" />
+          <img src="/assets/images/stickers-materials-v1.webp" alt="A material reference board of real Merchcraft print, label, and embroidery details" loading="lazy" className="aspect-[4/3] h-full w-full object-cover lg:aspect-auto" />
         </div>
       </section>
 
       <section className="bg-lab-black px-6 py-20 text-white sm:px-8 lg:px-10 lg:py-28">
         <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-2 lg:items-center">
           <div className="overflow-hidden">
-            <img src="/assets/images/services-quality-v2.webp" alt="Screen-print and embroidery samples being inspected before production" loading="lazy" className="aspect-[4/3] h-full w-full object-cover" />
+            <img src="/assets/images/services-quality-v2.webp" alt="Close-up of a dimensional garment print produced by Merchcraft" loading="lazy" className="aspect-[4/3] h-full w-full object-cover" />
           </div>
           <div className="lg:pl-10">
             <p className="font-accent text-sm font-bold uppercase tracking-[0.14em] text-lab-gold">Before production</p>

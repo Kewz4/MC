@@ -230,7 +230,7 @@ export default function QuotePage() {
             <p className="mt-9 max-w-xl text-base font-medium leading-relaxed text-white/65 sm:text-lg">Share a few project details and we’ll follow up with recommendations, pricing, and next steps.</p>
           </motion.div>
           <motion.div initial={{ opacity: 0, scale: 1.035 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }} className="overflow-hidden">
-            <img src="/assets/images/quote-hero-v3.webp" alt="A custom-apparel build kit with garments, cap, tote, thread, and material swatches" className="aspect-[4/3] h-full w-full object-cover object-center" />
+            <img src="/assets/images/quote-hero-v3.webp" alt="A completed Merchcraft apparel set photographed in use" className="aspect-[4/3] h-full w-full object-cover object-center" />
           </motion.div>
         </div>
       </section>

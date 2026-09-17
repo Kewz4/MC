@@ -31,7 +31,7 @@ class SplineSceneErrorBoundary extends Component<SplineSceneErrorBoundaryProps, 
       return (
         <img
           src="/assets/images/stickers-hero-v2.webp"
-          alt="Custom Merchcraft sticker samples"
+          alt="Approved patch and label references from Merchcraft client work"
           className="h-full w-full object-cover object-center opacity-55"
         />
       );
