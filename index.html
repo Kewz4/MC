@@ -3,11 +3,63 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Merchcraft</title>
-    <link rel="icon" type="image/png" href="https://i.imgur.com/10OHHmC.png" />
+    <meta name="description" content="Custom apparel, screen printing, embroidery, finishing, and fulfillment for brands across Southern California and beyond." />
+    <meta name="theme-color" content="#101820" />
+    <title>Merchcraft | Custom Apparel &amp; Finishing</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/brand/merchcraft-mark-full.svg" />
   </head>
   <body>
     <div id="root"></div>
+    <!-- Static form definitions allow Netlify to detect the React-rendered forms at build time. -->
+    <div hidden>
+      <form name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+        <input type="hidden" name="form-name" value="contact" />
+        <input name="bot-field" />
+        <input name="name" />
+        <input name="company" />
+        <input name="email" type="email" />
+        <input name="topic" />
+        <textarea name="message"></textarea>
+      </form>
+      <form name="quote" method="POST" data-netlify="true" netlify-honeypot="bot-field" enctype="multipart/form-data">
+        <input type="hidden" name="form-name" value="quote" />
+        <input name="bot-field" />
+        <input name="project_type" />
+        <input name="products" />
+        <input name="methods" />
+        <input name="quantity" />
+        <input name="target_date" />
+        <input name="artwork_status" />
+        <input name="artwork_file" type="file" />
+        <textarea name="notes"></textarea>
+        <input name="name" />
+        <input name="company" />
+        <input name="email" type="email" />
+        <input name="phone" />
+      </form>
+      <form name="sticker_quote" method="POST" data-netlify="true" netlify-honeypot="bot-field" enctype="multipart/form-data">
+        <input type="hidden" name="form-name" value="sticker_quote" />
+        <input name="bot-field" />
+        <input name="name" />
+        <input name="email" type="email" />
+        <input name="company" />
+        <input name="phone" />
+        <input name="quantity" />
+        <input name="designCount" />
+        <input name="width" />
+        <input name="height" />
+        <input name="unit" />
+        <input name="sizeUnknown" />
+        <input name="shape" />
+        <input name="surface" />
+        <input name="intendedUse" />
+        <input name="targetDate" />
+        <input name="artworkStatus" />
+        <input name="artworkLink" />
+        <input name="artwork_file" type="file" />
+        <textarea name="notes"></textarea>
+      </form>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
